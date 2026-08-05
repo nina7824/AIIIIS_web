@@ -1,0 +1,27 @@
+# Disable directory browsing
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /aiiiis/
+
+    # Redirect to remove public from URL
+    RewriteCond %{THE_REQUEST} ^GET.*public/
+    RewriteRule ^public/(.*) /aiiiis/$1 [L,R=301]
+
+    # If the requested file exists in public, serve it directly
+    RewriteCond %{DOCUMENT_ROOT}/public/%{REQUEST_URI} -f
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # Otherwise, route through public/index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/index.php/$1 [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    ErrorDocument 404 /aiiiis/index.php
+</IfModule>
+
+# Disable server signature
+ServerSignature Off
