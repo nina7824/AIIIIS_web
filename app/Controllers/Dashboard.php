@@ -74,17 +74,7 @@ class Dashboard extends BaseController
         ->get()
         ->getResultArray();
 
-    // ========== MATCH STATS ==========
-    $matchStats = [
-        'total' => $db->table('matches')->countAll(),
-        'pending' => $db->table('matches')->where('status', 'pending')->countAllResults(),
-        'accepted' => $db->table('matches')->where('status', 'accepted')->countAllResults(),
-        'rejected' => $db->table('matches')->where('status', 'rejected')->countAllResults(),
-        'introduced' => $db->table('matches')->where('status', 'introduced')->countAllResults(),
-        'negotiating' => $db->table('matches')->where('status', 'negotiating')->countAllResults(),
-        'closed' => $db->table('matches')->where('status', 'closed')->countAllResults(),
-        'avg_score' => round($db->table('matches')->selectAvg('match_score')->get()->getRow()->match_score ?? 0, 1)
-    ];
+   
 
     // ========== ENGAGEMENT STATS ==========
     $engagementStats = [
