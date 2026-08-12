@@ -865,7 +865,7 @@
 </section>
 
 <!-- ========== SERVICES ========== -->
-<section class="services-section" id="services">
+<section class="services-section">
     <div class="container">
         <div class="section-header">
             <div class="eyebrow">NIRDA Services</div>
@@ -992,7 +992,7 @@
             <?php endforeach; ?>
         </ul>
         <div class="modal-actions">
-            <a href="<?= base_url('service/' . $service['id']) ?>" class="btn-access-service">
+            <a href="<?= base_url('services/' . $service['id']) ?>" class="btn-access-service">
                 <i class="fas fa-comment-dots"></i> Access Service
             </a>
             <button class="btn-modal-secondary" onclick="closeServiceModal('<?= $service['id'] ?>')">

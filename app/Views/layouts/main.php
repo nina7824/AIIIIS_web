@@ -479,22 +479,30 @@
         </div>
 
         <div class="nav-main" id="navMain">
+            <?php 
+            // Set default value for $active_page if not defined
+            $active_page = $active_page ?? 'dashboard'; 
+            ?>
+            
             <a href="<?= base_url() ?>" class="<?= $active_page == 'dashboard' ? 'active' : '' ?>">Dashboard</a>
 
+            <!-- ========== ENTERPRISES DROPDOWN ========== -->
             <div class="has-dropdown">
-                <a href="#">Enterprises <i class="fas fa-chevron-down"></i></a>
+                <a href="#" class="<?= $active_page == 'enterprises' ? 'active' : '' ?>">Enterprises <i class="fas fa-chevron-down"></i></a>
                 <div class="dropdown">
-                    <a href="#"><i class="fas fa-building"></i> Enterprise Directory</a>
-                    <a href="#"><i class="fas fa-check-circle"></i> Verification Queue</a>
+                    <a href="<?= base_url('enterprises') ?>"><i class="fas fa-th-large"></i> Overview</a>
+                    <a href="<?= base_url('enterprises/directory') ?>"><i class="fas fa-building"></i> Enterprise Directory</a>
+                    <a href="<?= base_url('enterprises/verification') ?>"><i class="fas fa-check-circle"></i> Verification Queue</a>
                     <div class="dropdown-divider"></div>
-                    <a href="#"><i class="fas fa-map-marked-alt"></i> GIS Map View</a>
-                    <a href="#"><i class="fas fa-chart-pie"></i> Sector Clusters</a>
-                    <a href="#"><i class="fas fa-trophy"></i> Enterprise Ranking</a>
+                    <a href="<?= base_url('enterprises/gis') ?>"><i class="fas fa-map-marked-alt"></i> GIS Map View</a>
+                    <a href="<?= base_url('enterprises/clusters') ?>"><i class="fas fa-chart-pie"></i> Sector Clusters</a>
+                    <a href="<?= base_url('enterprises/ranking') ?>"><i class="fas fa-trophy"></i> Enterprise Ranking</a>
                 </div>
             </div>
 
+            <!-- ========== INVESTORS DROPDOWN ========== -->
             <div class="has-dropdown">
-                <a href="#">Investors <i class="fas fa-chevron-down"></i></a>
+                <a href="#" class="<?= $active_page == 'investors' ? 'active' : '' ?>">Investors <i class="fas fa-chevron-down"></i></a>
                 <div class="dropdown">
                     <a href="#"><i class="fas fa-users"></i> Investor Directory</a>
                     <a href="#"><i class="fas fa-handshake"></i> Matchmaking Engine</a>
@@ -505,22 +513,9 @@
                 </div>
             </div>
 
-            <a href="#">Analytics</a>
-
+            <!-- ========== REPORTS DROPDOWN ========== -->
             <div class="has-dropdown">
-                <a href="#">Engagement <i class="fas fa-chevron-down"></i></a>
-                <div class="dropdown">
-                    <a href="#"><i class="fas fa-user-tie"></i> Expert Directory</a>
-                    <a href="#"><i class="fas fa-calendar-check"></i> Advisory Requests</a>
-                    <a href="#"><i class="fas fa-headset"></i> Helpdesk</a>
-                    <div class="dropdown-divider"></div>
-                    <a href="#"><i class="fas fa-clipboard-list"></i> Visit Reports</a>
-                    <a href="#"><i class="fas fa-history"></i> Engagement History</a>
-                </div>
-            </div>
-
-            <div class="has-dropdown">
-                <a href="#">Reports <i class="fas fa-chevron-down"></i></a>
+                <a href="#" class="<?= $active_page == 'reports' ? 'active' : '' ?>">Reports <i class="fas fa-chevron-down"></i></a>
                 <div class="dropdown">
                     <a href="#"><i class="fas fa-file-pdf"></i> Enterprise Reports</a>
                     <a href="#"><i class="fas fa-file-pdf"></i> Investment Reports</a>
@@ -528,6 +523,20 @@
                     <div class="dropdown-divider"></div>
                     <a href="#"><i class="fas fa-file-pdf"></i> Cluster Reports</a>
                     <a href="#"><i class="fas fa-file-pdf"></i> Policy Intelligence</a>
+                </div>
+            </div>
+
+            <!-- ========== SERVICES DROPDOWN ========== -->
+            <div class="has-dropdown">
+                <a href="#" class="<?= $active_page == 'services' ? 'active' : '' ?>">Services <i class="fas fa-chevron-down"></i></a>
+                <div class="dropdown">
+                    <a href="<?= base_url('service/operations-followup') ?>"><i class="fas fa-tasks"></i> Operations Follow-up</a>
+                    <a href="<?= base_url('service/business-advisor') ?>"><i class="fas fa-user-tie"></i> Business Advisor</a>
+                    <a href="<?= base_url('service/technical-support') ?>"><i class="fas fa-microchip"></i> Technical Support</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="<?= base_url('service/rd-services') ?>"><i class="fas fa-flask"></i> R&D & Life Lab</a>
+                    <a href="<?= base_url('service/stem-services') ?>"><i class="fas fa-graduation-cap"></i> STEM Services</a>
+                    <a href="<?= base_url('service/investor-matchmaking') ?>"><i class="fas fa-handshake"></i> Investor Matchmaking</a>
                 </div>
             </div>
         </div>
@@ -556,11 +565,11 @@
             </div>
             <div class="footer-col">
                 <h4>Platform</h4>
-                <a href="#">Enterprise Directory</a>
-                <a href="#">GIS Mapping</a>
-                <a href="#">Ranking System</a>
+                <a href="<?= base_url('enterprises') ?>">Enterprise Directory</a>
+                <a href="<?= base_url('enterprises/gis') ?>">GIS Mapping</a>
+                <a href="<?= base_url('enterprises/ranking') ?>">Ranking System</a>
                 <a href="#">Matchmaking Engine</a>
-                <a href="#">Analytics</a>
+                <a href="<?= base_url('#services') ?>">Services</a>
             </div>
             <div class="footer-col">
                 <h4>For</h4>

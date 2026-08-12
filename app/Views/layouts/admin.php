@@ -484,48 +484,46 @@
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <!-- ========== SIDEBAR ========== -->
-    <!-- ========== SIDEBAR ========== -->
-<aside class="admin-sidebar" id="adminSidebar">
-    <div class="sidebar-brand">
-        <div class="brand">
-            <div class="brand-icon">AI</div>
-            <div class="brand-text">AIIIIS<span>.</span></div>
+    <aside class="admin-sidebar" id="adminSidebar">
+        <div class="sidebar-brand">
+            <div class="brand">
+                <div class="brand-icon">AI</div>
+                <div class="brand-text">AIIIIS<span>.</span></div>
+            </div>
         </div>
-    </div>
 
-    <div class="sidebar-user">
-        <div class="avatar"><?= strtoupper(substr($user['name'] ?? 'U', 0, 1)) ?></div>
-        <div class="user-info">
-            <div class="name"><?= $user['name'] ?? 'User' ?></div>
-            <div class="role"><?= ucfirst(str_replace('_', ' ', $user['role'] ?? 'user')) ?></div>
+        <div class="sidebar-user">
+            <div class="avatar"><?= strtoupper(substr($user['name'] ?? 'U', 0, 1)) ?></div>
+            <div class="user-info">
+                <div class="name"><?= $user['name'] ?? 'User' ?></div>
+                <div class="role"><?= ucfirst(str_replace('_', ' ', $user['role'] ?? 'user')) ?></div>
+            </div>
         </div>
-    </div>
 
-    <ul class="sidebar-menu">
-        <?php 
-        // Load admin menu helper
-        $adminMenuHelper = helper('admin_menu');
-        $menus = get_admin_menu($user['role'] ?? 'enterprise');
-        $currentUri = current_url();
-        
-        foreach ($menus as $menu): 
-            $isActive = is_menu_active($menu['active'], $currentUri);
-        ?>
-            <li>
-                <a href="<?= base_url($menu['route']) ?>" class="<?= $isActive ? 'active' : '' ?>">
-                    <i class="fas <?= $menu['icon'] ?>"></i>
-                    <?= $menu['label'] ?>
-                </a>
-            </li>
-        <?php endforeach; ?>
-    </ul>
+        <ul class="sidebar-menu">
+            <?php 
+            $adminMenuHelper = helper('admin_menu');
+            $menus = get_admin_menu($user['role'] ?? 'enterprise');
+            $currentUri = current_url();
+            
+            foreach ($menus as $menu): 
+                $isActive = is_menu_active($menu['active'], $currentUri);
+            ?>
+                <li>
+                    <a href="<?= base_url($menu['route']) ?>" class="<?= $isActive ? 'active' : '' ?>">
+                        <i class="fas <?= $menu['icon'] ?>"></i>
+                        <?= $menu['label'] ?>
+                    </a>
+                </li>
+            <?php endforeach; ?>
+        </ul>
 
-    <div class="sidebar-footer">
-        <a href="<?= base_url('logout') ?>">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </div>
-</aside>
+        <div class="sidebar-footer">
+            <a href="<?= base_url('logout') ?>">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
+    </aside>
 
     <!-- ========== MAIN CONTENT ========== -->
     <main class="admin-content">

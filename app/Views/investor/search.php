@@ -314,7 +314,7 @@
                     <label for="sector">Sector</label>
                     <select id="sector" name="sector">
                         <option value="">All Sectors</option>
-                        <?php foreach ($sectors ?? [] as $s): ?>
+                        <?php foreach ($sectors as $s): ?>
                             <option value="<?= $s['sector'] ?>" <?= ($filters['sector'] ?? '') == $s['sector'] ? 'selected' : '' ?>>
                                 <?= $s['sector'] ?>
                             </option>
@@ -325,7 +325,7 @@
                     <label for="location">Location</label>
                     <select id="location" name="location">
                         <option value="">All Locations</option>
-                        <?php foreach ($locations ?? [] as $l): ?>
+                        <?php foreach ($locations as $l): ?>
                             <option value="<?= $l['location'] ?>" <?= ($filters['location'] ?? '') == $l['location'] ? 'selected' : '' ?>>
                                 <?= $l['location'] ?>
                             </option>
@@ -404,7 +404,7 @@
                     <i class="fas fa-times"></i> Clear All
                 </a>
                 <span style="font-size:0.8rem;color:var(--ink-muted);margin-left:auto;">
-                    <?= count($enterprises ?? []) ?> enterprises found
+                    <?= count($enterprises) ?> enterprises found
                 </span>
             </div>
         </form>
@@ -413,7 +413,7 @@
     <!-- Results Header -->
     <div class="results-header">
         <div class="results-count">
-            <strong><?= count($enterprises ?? []) ?></strong> enterprises found
+            <strong><?= count($enterprises) ?></strong> enterprises found
             <?php if ($filters['women_owned'] ?? false): ?>
                 <span class="badge-women" style="display:inline-block;background:#e8f5e9;color:#2e7d32;padding:0.1rem 0.5rem;border-radius:20px;font-size:0.65rem;font-weight:600;margin-left:0.5rem;">
                     <i class="fas fa-female"></i> Women-Owned
@@ -423,7 +423,7 @@
     </div>
 
     <!-- Results -->
-    <?php if (!empty($enterprises ?? [])): ?>
+    <?php if (!empty($enterprises)): ?>
         <?php foreach ($enterprises as $enterprise): ?>
             <div class="enterprise-result">
                 <div class="header">
@@ -436,7 +436,7 @@
                         </div>
                         <div class="sector"><i class="fas fa-industry"></i> <?= esc($enterprise['sector'] ?? 'N/A') ?></div>
                         <div class="location"><i class="fas fa-map-marker-alt"></i> <?= esc($enterprise['location'] ?? 'N/A') ?></div>
-                        <?php if ($enterprise['investment_requirements'] ?? false): ?>
+                        <?php if ($enterprise['investment_requirements']): ?>
                             <div style="font-size:0.8rem;color:var(--primary);margin-top:0.25rem;">
                                 <i class="fas fa-info-circle"></i> <?= esc(substr($enterprise['investment_requirements'], 0, 100)) ?>...
                             </div>
@@ -445,7 +445,7 @@
                     <div style="text-align:center;">
                         <div class="score"><?= $enterprise['total_score'] ?? 0 ?>%</div>
                         <div class="score-label">AI Ranking</div>
-                        <?php if ($enterprise['rank_position'] ?? false): ?>
+                        <?php if ($enterprise['rank_position']): ?>
                             <div style="font-size:0.7rem;color:var(--ink-muted);">#<?= $enterprise['rank_position'] ?> overall</div>
                         <?php endif; ?>
                     </div>

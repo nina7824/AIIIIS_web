@@ -97,25 +97,37 @@
 
         /* ========== ALERTS ========== */
         .alert {
-            padding: 0.6rem 1rem;
+            padding: 0.75rem 1rem;
             border-radius: var(--radius);
             font-size: 0.82rem;
             margin-bottom: 1rem;
             display: flex;
             align-items: center;
             gap: 0.6rem;
+            border-left: 4px solid transparent;
         }
 
         .alert-danger {
             background: #fde8e8;
             color: #c62828;
-            border: 1px solid #f5c6cb;
+            border-left-color: #e74c3c;
         }
 
         .alert-success {
             background: #e8f5e9;
             color: #2e7d32;
-            border: 1px solid #c8e6c9;
+            border-left-color: #4caf50;
+        }
+
+        .alert-info {
+            background: #e6f4fb;
+            color: #045a86;
+            border-left-color: var(--primary);
+        }
+
+        .alert i {
+            font-size: 0.9rem;
+            flex-shrink: 0;
         }
 
         /* ========== FLOATING LABEL FORM ========== */
@@ -297,6 +309,23 @@
             text-decoration: underline;
         }
 
+        /* ========== RESEND VERIFICATION ========== */
+        .resend-verification {
+            text-align: center;
+            margin-top: 0.75rem;
+            font-size: 0.78rem;
+        }
+
+        .resend-verification a {
+            color: var(--ink-muted);
+            transition: var(--transition);
+        }
+
+        .resend-verification a:hover {
+            color: var(--primary);
+            text-decoration: underline;
+        }
+
         /* ========== BACK TO HOME ========== */
         .back-home {
             text-align: center;
@@ -431,6 +460,13 @@
             </div>
         <?php endif; ?>
 
+        <?php if (session()->getFlashdata('info')): ?>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <?= session()->getFlashdata('info') ?>
+            </div>
+        <?php endif; ?>
+
         <!-- ========== LOGIN FORM ========== -->
         <form action="<?= base_url('login/authenticate') ?>" method="post">
             <?= csrf_field() ?>
@@ -470,6 +506,11 @@
         <!-- ========== REGISTER LINK ========== -->
         <div class="register-link">
             Don't have an account? <a href="<?= base_url('register') ?>">Create one now</a>
+        </div>
+
+        <!-- ========== RESEND VERIFICATION ========== -->
+        <div class="resend-verification">
+            <a href="<?= base_url('resend-verification') ?>">Resend verification email</a>
         </div>
 
         <!-- ========== BACK TO HOME ========== -->

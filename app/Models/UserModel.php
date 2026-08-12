@@ -15,7 +15,11 @@ class UserModel extends Model
         'role', 
         'profile_image', 
         'phone',
-        'is_active', 
+        'is_active',
+        'is_verified',
+        'verification_token',
+        'default_password',
+        'must_change_password',
         'last_login'
     ];
     protected $returnType = 'array';
@@ -39,11 +43,119 @@ class UserModel extends Model
         ]
     ];
 
-    public function getUserByRole($role)
+    // Hash password before insert
+    protected $beforeInsert = ['hashPassword'];
+    protected $beforeUpdate = ['hashPasswordOnUpdate'];
+
+    protected function hashPassword(array $data)
+    {
+        if (isset($data['data']['password'])) {
+            $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        }
+        return $data;
+    }
+
+    protected function hashPasswordOnUpdate(array $data)
+    {
+        if (isset($data['data']['password']) && !empty($data['data']['password'])) {
+            $data['data']['password'] = password_hash($data['data']['password'], PASSWORD_DEFAULT);
+        }
+        return $data;
+    }
+
+    /**
+     * Verify user email with token
+     */
+    public function verifyUser($token)
+    {
+        return $this->where('verification_token', $token)
+                    ->set(['is_verified' => 1, 'verification_token' => null])
+                    ->update();
+    }
+
+    /**
+     * Change user password and clear must_change_password flag
+     */
+    public function changePassword($userId, $newPassword)
+    {
+        return $this->update($userId, [
+            'password' => $newPassword,
+            'must_change_password' => 0,
+            'default_password' => null
+        ]);
+    }
+
+    /**
+     * Get user by verification token
+     */
+    public function getUserByToken($token)
+    {
+        return $this->where('verification_token', $token)->first();
+    }
+
+    /**
+     * Get user by email
+     */
+    public function getUserByEmail($email)
+    {
+        return $this->where('email', $email)->first();
+    }
+
+    /**
+     * Check if user is verified
+     */
+    public function isVerified($userId)
+    {
+        $user = $this->find($userId);
+        return $user && $user['is_verified'] == 1;
+    }
+
+    /**
+     * Check if user must change password
+     */
+    public function mustChangePassword($userId)
+    {
+        $user = $this->find($userId);
+        return $user && $user['must_change_password'] == 1;
+    }
+
+    /**
+     * Get users by role
+     */
+    public function getUsersByRole($role)
     {
         return $this->where('role', $role)->findAll();
     }
 
+    /**
+     * Get active users count
+     */
+    public function getActiveUsersCount()
+    {
+        return $this->where('is_active', 1)->countAllResults();
+    }
+
+    /**
+     * Get verified users count
+     */
+    public function getVerifiedUsersCount()
+    {
+        return $this->where('is_verified', 1)->countAllResults();
+    }
+
+    /**
+     * Get users by role with count
+     */
+    public function getUsersByRoleWithCount()
+    {
+        return $this->select('role, COUNT(*) as count')
+                    ->groupBy('role')
+                    ->findAll();
+    }
+
+    /**
+     * Get user with details based on role
+     */
     public function getUserWithDetails($userId)
     {
         $user = $this->find($userId);
@@ -71,5 +183,41 @@ class UserModel extends Model
 
         $user['details'] = $details;
         return $user;
+    }
+
+    /**
+     * Get recent users with limit
+     */
+    public function getRecentUsers($limit = 10)
+    {
+        return $this->orderBy('created_at', 'DESC')
+                    ->limit($limit)
+                    ->findAll();
+    }
+
+    /**
+     * Search users by name or email
+     */
+    public function searchUsers($keyword)
+    {
+        return $this->like('name', $keyword)
+                    ->orLike('email', $keyword)
+                    ->findAll();
+    }
+
+    /**
+     * Activate or deactivate user
+     */
+    public function toggleUserStatus($userId, $status)
+    {
+        return $this->update($userId, ['is_active' => $status]);
+    }
+
+    /**
+     * Update last login timestamp
+     */
+    public function updateLastLogin($userId)
+    {
+        return $this->update($userId, ['last_login' => date('Y-m-d H:i:s')]);
     }
 }

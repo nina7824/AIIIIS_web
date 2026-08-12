@@ -90,63 +90,63 @@ class Dashboard extends BaseController
         return view('admin/users', $data);
     }
 
-    public function enterprises()
-    {
-        // Check if user is logged in and is admin
-        if (!session()->get('isLoggedIn') || session()->get('role') !== 'administrator') {
-            return redirect()->to('/login');
-        }
+    // public function enterprises()
+    // {
+    //     // Check if user is logged in and is admin
+    //     if (!session()->get('isLoggedIn') || session()->get('role') !== 'administrator') {
+    //         return redirect()->to('/login');
+    //     }
 
-        $db = \Config\Database::connect();
-        $enterprises = $db->table('enterprises')
-            ->orderBy('created_at', 'DESC')
-            ->get()
-            ->getResultArray();
+    //     $db = \Config\Database::connect();
+    //     $enterprises = $db->table('enterprises')
+    //         ->orderBy('created_at', 'DESC')
+    //         ->get()
+    //         ->getResultArray();
 
-        $data = [
-            'title' => 'Enterprises — AIIIIS',
-            'page_title' => 'Enterprises',
-            'breadcrumb' => 'Enterprises',
-            'user' => [
-                'name' => session()->get('name'),
-                'role' => session()->get('role'),
-                'email' => session()->get('email'),
-                'user_id' => session()->get('user_id')
-            ],
-            'enterprises' => $enterprises
-        ];
+    //     $data = [
+    //         'title' => 'Enterprises — AIIIIS',
+    //         'page_title' => 'Enterprises',
+    //         'breadcrumb' => 'Enterprises',
+    //         'user' => [
+    //             'name' => session()->get('name'),
+    //             'role' => session()->get('role'),
+    //             'email' => session()->get('email'),
+    //             'user_id' => session()->get('user_id')
+    //         ],
+    //         'enterprises' => $enterprises
+    //     ];
 
-        return view('admin/enterprises', $data);
-    }
+    //     return view('admin/enterprises', $data);
+    // }
 
-    public function investors()
-    {
-        // Check if user is logged in and is admin
-        if (!session()->get('isLoggedIn') || session()->get('role') !== 'administrator') {
-            return redirect()->to('/login');
-        }
+    // public function investors()
+    // {
+    //     // Check if user is logged in and is admin
+    //     if (!session()->get('isLoggedIn') || session()->get('role') !== 'administrator') {
+    //         return redirect()->to('/login');
+    //     }
 
-        $db = \Config\Database::connect();
-        $investors = $db->table('investors')
-            ->orderBy('created_at', 'DESC')
-            ->get()
-            ->getResultArray();
+    //     $db = \Config\Database::connect();
+    //     $investors = $db->table('investors')
+    //         ->orderBy('created_at', 'DESC')
+    //         ->get()
+    //         ->getResultArray();
 
-        $data = [
-            'title' => 'Investors — AIIIIS',
-            'page_title' => 'Investors',
-            'breadcrumb' => 'Investors',
-            'user' => [
-                'name' => session()->get('name'),
-                'role' => session()->get('role'),
-                'email' => session()->get('email'),
-                'user_id' => session()->get('user_id')
-            ],
-            'investors' => $investors
-        ];
+    //     $data = [
+    //         'title' => 'Investors — AIIIIS',
+    //         'page_title' => 'Investors',
+    //         'breadcrumb' => 'Investors',
+    //         'user' => [
+    //             'name' => session()->get('name'),
+    //             'role' => session()->get('role'),
+    //             'email' => session()->get('email'),
+    //             'user_id' => session()->get('user_id')
+    //         ],
+    //         'investors' => $investors
+    //     ];
 
-        return view('admin/investors', $data);
-    }
+    //     return view('admin/investors', $data);
+    // }
 
     public function matches()
     {

@@ -218,7 +218,20 @@ if (!function_exists('get_admin_menu')) {
                 ]
             ];
         }
-
+// Enterprise menus
+if ($role === 'enterprise') {
+    return [
+        ['icon' => 'fa-tachometer-alt', 'label' => 'Dashboard', 'route' => 'enterprise/dashboard', 'active' => 'enterprise/dashboard'],
+        ['icon' => 'fa-id-card', 'label' => 'My Profile', 'route' => 'enterprise/profile', 'active' => 'enterprise/profile'],
+        ['icon' => 'fa-trophy', 'label' => 'My Ranking', 'route' => 'enterprise/ranking', 'active' => 'enterprise/ranking'],
+        ['icon' => 'fa-handshake', 'label' => 'Matches', 'route' => 'enterprise/matches', 'active' => 'enterprise/matches'],
+        ['icon' => 'fa-rocket', 'label' => 'Investment', 'route' => 'enterprise/investment', 'active' => 'enterprise/investment'],
+        ['icon' => 'fa-chalkboard-teacher', 'label' => 'Advisory', 'route' => 'enterprise/advisory', 'active' => 'enterprise/advisory'],
+        ['icon' => 'fa-headset', 'label' => 'Helpdesk', 'route' => 'enterprise/helpdesk', 'active' => 'enterprise/helpdesk'],
+        ['icon' => 'fa-bell', 'label' => 'Notifications', 'route' => 'enterprise/notifications', 'active' => 'enterprise/notifications'],
+        ['icon' => 'fa-calendar-check', 'label' => 'Engagements', 'route' => 'enterprise/engagements', 'active' => 'enterprise/engagements']
+    ];
+}
         // Analyst menus
         if ($role === 'analyst') {
             return [
