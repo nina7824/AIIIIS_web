@@ -4,34 +4,37 @@ namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
 
-/**
- * Enable/disable backward compatibility breaking features.
- */
 class Feature extends BaseConfig
 {
     /**
-     * Use improved new auto routing instead of the legacy version.
+     * Enable/disable the auto-routing system.
+     * 
+     * When true, the router will try to match the URI against 
+     * controllers directly without defined routes.
+     */
+    public bool $autoRoutes = false;
+
+    /**
+     * Enable/disable the legacy auto-routing system.
+     * 
+     * When true, the router will use the legacy auto-routing
+     * behavior from CodeIgniter 3.
      */
     public bool $autoRoutesImproved = true;
 
     /**
-     * Use filter execution order in 4.4 or before.
+     * Enable/disable the strict route matching.
+     * 
+     * When true, the router will only match routes that exactly
+     * match the defined route pattern.
+     */
+    public bool $strictRoutes = false;
+
+    /**
+     * Enable/disable the old filter order.
+     * 
+     * When true, filters will run in the old order (before globals).
+     * When false (default), filters will run after globals.
      */
     public bool $oldFilterOrder = false;
-
-    /**
-     * The behavior of `limit(0)` in Query Builder.
-     *
-     * If true, `limit(0)` returns all records. (the behavior of 4.4.x or before in version 4.x.)
-     * If false, `limit(0)` returns no records. (the behavior of 3.1.9 or later in version 3.x.)
-     */
-    public bool $limitZeroAsAll = true;
-
-    /**
-     * Use strict location negotiation.
-     *
-     * By default, the locale is selected based on a loose comparison of the language code (ISO 639-1)
-     * Enabling strict comparison will also consider the region code (ISO 3166-1 alpha-2).
-     */
-    public bool $strictLocaleNegotiation = false;
 }

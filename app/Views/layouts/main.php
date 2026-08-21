@@ -542,11 +542,11 @@
         </div>
 
         <div class="nav-actions">
-            <button class="search-btn"><i class="fas fa-search"></i></button>
-            <a href="<?= base_url('login') ?>" class="btn-outline-nav">Sign in</a>
-            <a href="<?= base_url('register') ?>" class="btn-primary-nav">Register</a>
-            <button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
-        </div>
+    <button class="search-btn"><i class="fas fa-search"></i></button>
+    <a href="<?= base_url('auth/login') ?>" class="btn-outline-nav">Sign in</a>
+    <a href="<?= base_url('auth/register') ?>" class="btn-primary-nav">Register</a>
+    <button class="mobile-toggle" id="mobileToggle"><i class="fas fa-bars"></i></button>
+</div>
     </div>
 </nav>
 

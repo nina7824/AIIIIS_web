@@ -149,14 +149,26 @@
         }
         .sidebar-brand .brand-text span { color: var(--primary); }
 
+        /* ========== SIDEBAR USER WITH DROPDOWN ========== */
+        .sidebar-user-wrapper {
+            position: relative;
+            padding: 0 0.75rem;
+            margin-bottom: 1rem;
+        }
+
         .sidebar-user {
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.75rem 1.5rem;
-            margin: 0 0.75rem 1rem;
+            padding: 0.75rem;
             background: var(--canvas);
             border-radius: var(--radius);
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+        .sidebar-user:hover {
+            background: var(--primary-light);
         }
         .sidebar-user .avatar {
             width: 36px;
@@ -171,6 +183,9 @@
             font-size: 0.85rem;
             flex-shrink: 0;
         }
+        .sidebar-user .user-info {
+            flex: 1;
+        }
         .sidebar-user .user-info .name {
             font-weight: 600;
             font-size: 0.85rem;
@@ -182,6 +197,74 @@
             color: var(--ink-muted);
             text-transform: uppercase;
             letter-spacing: 0.05em;
+        }
+        .sidebar-user .dropdown-arrow {
+            font-size: 0.7rem;
+            color: var(--ink-muted);
+            transition: transform 0.3s ease;
+        }
+        .sidebar-user .dropdown-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        /* Profile Dropdown Menu */
+        .profile-dropdown {
+            position: absolute;
+            top: calc(100% + 4px);
+            left: 0;
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 0.5rem 0;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 100;
+            min-width: 200px;
+        }
+        .profile-dropdown.open {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .profile-dropdown .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+            color: var(--ink-muted);
+            transition: var(--transition);
+            cursor: pointer;
+        }
+        .profile-dropdown .dropdown-item:hover {
+            background: var(--canvas);
+            color: var(--ink);
+        }
+        .profile-dropdown .dropdown-item i {
+            width: 16px;
+            font-size: 0.8rem;
+            color: var(--ink-muted);
+        }
+        .profile-dropdown .dropdown-item:hover i {
+            color: var(--primary);
+        }
+        .profile-dropdown .dropdown-divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0.25rem 0.75rem;
+        }
+        .profile-dropdown .dropdown-item.danger {
+            color: #c62828;
+        }
+        .profile-dropdown .dropdown-item.danger:hover {
+            background: #fde8e8;
+        }
+        .profile-dropdown .dropdown-item.danger i {
+            color: #c62828;
         }
 
         .sidebar-menu {
@@ -208,6 +291,7 @@
             font-weight: 500;
             border-radius: var(--radius);
             transition: var(--transition);
+            cursor: pointer;
         }
         .sidebar-menu li a:hover {
             color: var(--ink);
@@ -230,6 +314,41 @@
             font-weight: 600;
             padding: 0.05rem 0.5rem;
             border-radius: 20px;
+        }
+        .sidebar-menu li a .chevron {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+            font-size: 0.7rem;
+        }
+        .sidebar-menu li a .chevron.open {
+            transform: rotate(180deg);
+        }
+
+        /* Submenu styles */
+        .sidebar-menu .submenu {
+            list-style: none;
+            padding-left: 1.5rem;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .sidebar-menu .submenu.open {
+            max-height: 500px;
+        }
+        .sidebar-menu .submenu li a {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.78rem;
+            color: var(--ink-muted);
+            border-left: 2px solid transparent;
+        }
+        .sidebar-menu .submenu li a:hover {
+            border-left-color: var(--primary);
+            background: var(--canvas);
+        }
+        .sidebar-menu .submenu li a.active {
+            border-left-color: var(--primary);
+            color: var(--primary);
+            background: var(--primary-light);
         }
 
         .sidebar-footer {
@@ -492,28 +611,112 @@
             </div>
         </div>
 
-        <div class="sidebar-user">
-            <div class="avatar"><?= strtoupper(substr($user['name'] ?? 'U', 0, 1)) ?></div>
-            <div class="user-info">
-                <div class="name"><?= $user['name'] ?? 'User' ?></div>
-                <div class="role"><?= ucfirst(str_replace('_', ' ', $user['role'] ?? 'user')) ?></div>
+        <!-- ========== USER PROFILE WITH DROPDOWN ========== -->
+        <div class="sidebar-user-wrapper">
+            <div class="sidebar-user" id="profileToggle" onclick="toggleProfileDropdown(event)">
+                <div class="avatar"><?= strtoupper(substr($user['name'] ?? 'U', 0, 1)) ?></div>
+                <div class="user-info">
+                    <div class="name"><?= $user['name'] ?? 'User' ?></div>
+                    <div class="role"><?= ucfirst(str_replace('_', ' ', $user['role'] ?? 'user')) ?></div>
+                </div>
+                <i class="fas fa-chevron-down dropdown-arrow" id="dropdownArrow"></i>
+            </div>
+
+            <!-- Profile Dropdown Menu -->
+            <div class="profile-dropdown" id="profileDropdown">
+                <a href="<?= base_url('profile') ?>" class="dropdown-item">
+                    <i class="fas fa-user"></i> My Profile
+                </a>
+                <a href="<?= base_url('profile/edit') ?>" class="dropdown-item">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </a>
+                <a href="<?= base_url('profile/security') ?>" class="dropdown-item">
+                    <i class="fas fa-shield-alt"></i> Security Settings
+                </a>
+                <a href="<?= base_url('profile/notifications') ?>" class="dropdown-item">
+                    <i class="fas fa-bell"></i> Notifications
+                    <span class="badge" style="margin-left:auto; background:var(--primary); color:#fff; font-size:0.55rem; font-weight:600; padding:0.05rem 0.5rem; border-radius:20px;">3</span>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="<?= base_url('help') ?>" class="dropdown-item">
+                    <i class="fas fa-question-circle"></i> Help & Support
+                </a>
+                <a href="<?= base_url('logout') ?>" class="dropdown-item danger">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
             </div>
         </div>
 
         <ul class="sidebar-menu">
             <?php 
-            $adminMenuHelper = helper('admin_menu');
-            $menus = get_admin_menu($user['role'] ?? 'enterprise');
+            // Load helpers
+            helper('admin_menu');
+            
+            // Get menus based on user permissions
+            $menus = get_admin_menu($user);
             $currentUri = current_url();
             
             foreach ($menus as $menu): 
-                $isActive = is_menu_active($menu['active'], $currentUri);
+                $hasSubmenus = isset($menu['submenus']) && !empty($menu['submenus']);
+                $isActive = is_menu_active($menu['active'] ?? [], $currentUri);
+                
+                // Check if any submenu is active
+                $hasActiveSubmenu = false;
+                if ($hasSubmenus) {
+                    foreach ($menu['submenus'] as $submenu) {
+                        if (strpos($currentUri, $submenu['route']) !== false) {
+                            $hasActiveSubmenu = true;
+                            break;
+                        }
+                    }
+                }
             ?>
                 <li>
-                    <a href="<?= base_url($menu['route']) ?>" class="<?= $isActive ? 'active' : '' ?>">
-                        <i class="fas <?= $menu['icon'] ?>"></i>
-                        <?= $menu['label'] ?>
-                    </a>
+                    <?php if ($hasSubmenus): ?>
+                        <a href="#" onclick="toggleSubmenu(event, this)" class="<?= ($isActive || $hasActiveSubmenu) ? 'active' : '' ?>">
+                            <i class="fas <?= $menu['icon'] ?>"></i>
+                            <?= $menu['label'] ?>
+                            <?php if (isset($menu['badge'])): ?>
+                                <span class="badge"><?= $menu['badge'] ?></span>
+                            <?php endif; ?>
+                            <i class="fas fa-chevron-down chevron <?= ($isActive || $hasActiveSubmenu) ? 'open' : '' ?>"></i>
+                        </a>
+                        <ul class="submenu <?= ($isActive || $hasActiveSubmenu) ? 'open' : '' ?>">
+                            <?php foreach ($menu['submenus'] as $submenu): 
+                                // Check if user has permission for this submenu
+                                $subModule = $submenu['module'] ?? $menu['module'] ?? null;
+                                $hasAccess = true;
+                                
+                                if ($subModule && isset($submenu['permissions'])) {
+                                    $hasAccess = false;
+                                    foreach ($submenu['permissions'] as $perm) {
+                                        if (has_permission($user['user_id'] ?? null, $subModule, $perm)) {
+                                            $hasAccess = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                
+                                if (!$hasAccess) continue;
+                            ?>
+                                <li>
+                                    <a href="<?= base_url($submenu['route']) ?>" 
+                                       class="<?= strpos($currentUri, $submenu['route']) !== false ? 'active' : '' ?>">
+                                        <i class="fas fa-circle" style="font-size: 0.4rem; width: 12px;"></i>
+                                        <?= $submenu['label'] ?>
+                                    </a>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php else: ?>
+                        <a href="<?= base_url($menu['route']) ?>" class="<?= $isActive ? 'active' : '' ?>">
+                            <i class="fas <?= $menu['icon'] ?>"></i>
+                            <?= $menu['label'] ?>
+                            <?php if (isset($menu['badge'])): ?>
+                                <span class="badge"><?= $menu['badge'] ?></span>
+                            <?php endif; ?>
+                        </a>
+                    <?php endif; ?>
                 </li>
             <?php endforeach; ?>
         </ul>
@@ -572,6 +775,61 @@
         if (window.innerWidth > 992) {
             sidebar.classList.remove('open');
             overlay.classList.remove('active');
+        }
+    });
+
+    // Toggle submenu
+    function toggleSubmenu(event, element) {
+        event.preventDefault();
+        event.stopPropagation();
+        
+        const parentLi = element.closest('li');
+        const submenu = parentLi.querySelector('.submenu');
+        const chevron = element.querySelector('.chevron');
+        
+        if (submenu) {
+            submenu.classList.toggle('open');
+            if (chevron) {
+                chevron.classList.toggle('open');
+            }
+        }
+    }
+
+    // Auto-expand active submenus on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.submenu').forEach(function(submenu) {
+            if (submenu.querySelector('a.active')) {
+                submenu.classList.add('open');
+                const parentLi = submenu.closest('li');
+                if (parentLi) {
+                    const chevron = parentLi.querySelector('.chevron');
+                    if (chevron) {
+                        chevron.classList.add('open');
+                    }
+                }
+            }
+        });
+    });
+
+    // ========== PROFILE DROPDOWN TOGGLE ==========
+    function toggleProfileDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById('profileDropdown');
+        const arrow = document.getElementById('dropdownArrow');
+        
+        dropdown.classList.toggle('open');
+        arrow.classList.toggle('open');
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+        const wrapper = document.querySelector('.sidebar-user-wrapper');
+        const dropdown = document.getElementById('profileDropdown');
+        const arrow = document.getElementById('dropdownArrow');
+        
+        if (wrapper && !wrapper.contains(event.target)) {
+            dropdown.classList.remove('open');
+            arrow.classList.remove('open');
         }
     });
 </script>

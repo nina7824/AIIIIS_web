@@ -3,7 +3,4 @@
 <?= $this->section('content') ?>
 
 
-
-
-
 <?= $this->endSection() ?>

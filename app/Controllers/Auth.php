@@ -11,10 +11,9 @@ class Auth extends BaseController
 {
     public function login()
     {
-        // If already logged in, redirect based on role
+        // If already logged in, redirect to dashboard
         if (session()->get('isLoggedIn')) {
-            $role = session()->get('role');
-            return redirect()->to($this->getDashboardUrl($role));
+            return redirect()->to('/dashboard');
         }
 
         $data = [
@@ -43,6 +42,14 @@ class Auth extends BaseController
                     ->withInput();
             }
 
+            // Get user roles
+            $userRoleModel = new \App\Models\UserRoleModel();
+            $roles = $userRoleModel->getRolesForUser($user['user_id']);
+
+            // Load permissions for this user
+            $permissionManager = new \App\Libraries\PermissionManager();
+            $userPermissions = $permissionManager->getUserPermissions($user['user_id']);
+
             // Set session data
             $sessionData = [
                 'user_id' => $user['user_id'],
@@ -50,7 +57,12 @@ class Auth extends BaseController
                 'email' => $user['email'],
                 'role' => $user['role'],
                 'phone' => $user['phone'],
-                'isLoggedIn' => true
+                'is_active' => $user['is_active'],
+                'is_verified' => $user['is_verified'],
+                'theme_preference' => $user['theme_preference'] ?? 'light',
+                'isLoggedIn' => true,
+                'roles' => $roles, // Store all roles
+                'permissions' => $userPermissions // Store permissions in session
             ];
 
             session()->set($sessionData);
@@ -58,10 +70,8 @@ class Auth extends BaseController
             // Update last login
             $userModel->updateLastLogin($user['user_id']);
 
-            // Redirect based on role
-            $redirectUrl = $this->getDashboardUrl($user['role']);
-            
-            return redirect()->to($redirectUrl)
+            // ALL USERS GO TO THE SAME DASHBOARD
+            return redirect()->to('/dashboard')
                 ->with('success', 'Welcome back, ' . $user['name'] . '!');
         }
 
@@ -79,8 +89,7 @@ class Auth extends BaseController
     public function register()
     {
         if (session()->get('isLoggedIn')) {
-            $role = session()->get('role');
-            return redirect()->to($this->getDashboardUrl($role));
+            return redirect()->to('/dashboard');
         }
 
         $data = [
@@ -373,19 +382,5 @@ class Auth extends BaseController
         }
         
         return $rules;
-    }
-
-    private function getDashboardUrl($role)
-    {
-        $roleUrls = [
-            'administrator' => '/admin/dashboard',
-            'nirda_expert' => '/expert/dashboard',
-            'enterprise' => '/enterprise/dashboard',
-            'investor' => '/investor/dashboard',
-            'government' => '/government/dashboard',
-            'analyst' => '/analyst/dashboard'
-        ];
-
-        return $roleUrls[$role] ?? '/dashboard';
     }
 }

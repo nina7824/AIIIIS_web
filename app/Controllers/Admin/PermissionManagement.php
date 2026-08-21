@@ -2,47 +2,75 @@
 // app/Helpers/admin_menu_helper.php
 
 if (!function_exists('get_admin_menu')) {
+    /**
+     * Get admin sidebar menu dynamically based on user role and permissions
+     * 
+     * @param string|array $user User data or role string
+     * @return array Menu items with submenus
+     */
     function get_admin_menu($user)
     {
+        // Extract role from user data
         $role = is_array($user) ? ($user['role'] ?? 'enterprise') : $user;
+        
+        // Get permissions from session
         $permissions = session()->get('permissions') ?? [];
         
+        // If user array has permissions, use those instead
         if (is_array($user) && isset($user['permissions'])) {
             $permissions = $user['permissions'];
         }
         
+        // ============================================================
+        // CHECK IF USER IS SUPER ADMIN
+        // ============================================================
         $isSuperAdmin = false;
         $superAdminRoles = ['super_admin', 'Super Admin', 'Administrator', 'admin'];
         
+        // Check if role is in super admin list
         if (is_string($role)) {
             $isSuperAdmin = in_array(strtolower($role), array_map('strtolower', $superAdminRoles));
         }
         
+        // Also check if user array has role
         if (is_array($user) && isset($user['role'])) {
             $isSuperAdmin = in_array(strtolower($user['role']), array_map('strtolower', $superAdminRoles));
         }
         
-        // If super admin, grant all permissions - NO is_active check
+        // ============================================================
+        // IF SUPER ADMIN - GRANT ALL PERMISSIONS
+        // ============================================================
         if ($isSuperAdmin) {
+            // Get all permission slugs from database
             try {
                 $db = \Config\Database::connect();
-                $tables = $db->listTables();
                 
+                // Check if permissions table exists
+                $tables = $db->listTables();
                 if (in_array('permissions', $tables)) {
-                    // Get ALL permissions - NO WHERE clause
-                    $allPermissions = $db->table('permissions')
-                        ->select('slug')
-                        ->get()
-                        ->getResultArray();
+                    // Check if is_active column exists
+                    $fields = $db->getFieldData('permissions');
+                    $fieldNames = array_column($fields, 'name');
+                    $hasIsActive = in_array('is_active', $fieldNames);
                     
+                    // Build query
+                    $builder = $db->table('permissions')->select('slug');
+                    
+                    // Only use is_active if column exists
+                    if ($hasIsActive) {
+                        $builder->where('is_active', 1);
+                    }
+                    
+                    $allPermissions = $builder->get()->getResultArray();
                     $allPermissionSlugs = array_column($allPermissions, 'slug');
                     $permissions = array_merge($permissions, $allPermissionSlugs);
                 }
             } catch (\Exception $e) {
+                // Log error but continue
                 log_message('error', 'Error fetching permissions in menu: ' . $e->getMessage());
             }
             
-            // Add default permissions
+            // Add all default permissions for super admin
             $permissions = array_merge($permissions, [
                 'dashboard_view',
                 'users_view', 'users_manage', 'users_add', 'users_edit', 'users_delete',
@@ -71,13 +99,17 @@ if (!function_exists('get_admin_menu')) {
                 'service_reviews_view', 'service_reviews_manage'
             ]);
             
+            // Remove duplicates
             $permissions = array_unique($permissions);
         }
+        // ============================================================
         
-        // Build menu
+        // Build dynamic menu based on permissions
         $menu = [];
         
+        // ============================================================
         // DASHBOARD
+        // ============================================================
         if (in_array('dashboard_view', $permissions) || $isSuperAdmin) {
             $menu[] = [
                 'icon' => 'fa-tachometer-alt', 
@@ -87,7 +119,9 @@ if (!function_exists('get_admin_menu')) {
             ];
         }
         
+        // ============================================================
         // USER MANAGEMENT
+        // ============================================================
         if (in_array('users_view', $permissions) || in_array('users_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             
@@ -118,7 +152,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // PERMISSIONS
+        // ============================================================
         if (in_array('permissions_view', $permissions) || in_array('permissions_manage', $permissions) || $isSuperAdmin) {
             $menu[] = [
                 'icon' => 'fa-lock', 
@@ -128,7 +164,9 @@ if (!function_exists('get_admin_menu')) {
             ];
         }
         
+        // ============================================================
         // MODULES
+        // ============================================================
         if (in_array('modules_view', $permissions) || in_array('modules_manage', $permissions) || $isSuperAdmin) {
             $menu[] = [
                 'icon' => 'fa-cubes', 
@@ -138,7 +176,9 @@ if (!function_exists('get_admin_menu')) {
             ];
         }
         
+        // ============================================================
         // ENTERPRISES
+        // ============================================================
         if (in_array('enterprises_view', $permissions) || in_array('enterprises_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             
@@ -190,7 +230,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // SERVICES
+        // ============================================================
         if (in_array('services_view', $permissions) || in_array('services_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('services_view', $permissions) || $isSuperAdmin) {
@@ -231,7 +273,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // INVESTORS
+        // ============================================================
         if (in_array('investors_view', $permissions) || in_array('investors_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('investors_view', $permissions) || $isSuperAdmin) {
@@ -260,7 +304,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // REPORTS
+        // ============================================================
         if (in_array('reports_view', $permissions) || in_array('reports_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('reports_view', $permissions) || $isSuperAdmin) {
@@ -286,7 +332,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // MATCHMAKING
+        // ============================================================
         if (in_array('matchmaking_view', $permissions) || in_array('matchmaking_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('matchmaking_view', $permissions) || $isSuperAdmin) {
@@ -312,7 +360,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // SECTORS
+        // ============================================================
         if (in_array('sectors_view', $permissions) || in_array('sectors_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('sectors_view', $permissions) || $isSuperAdmin) {
@@ -338,7 +388,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // DEALS
+        // ============================================================
         if (in_array('deals_view', $permissions) || in_array('deals_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('deals_view', $permissions) || $isSuperAdmin) {
@@ -364,7 +416,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // ANALYTICS
+        // ============================================================
         if (in_array('analytics_view', $permissions) || in_array('analytics_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('analytics_view', $permissions) || $isSuperAdmin) {
@@ -384,7 +438,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // SETTINGS
+        // ============================================================
         if (in_array('settings_view', $permissions) || in_array('settings_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('settings_view', $permissions) || $isSuperAdmin) {
@@ -404,7 +460,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
         // SUPPORT
+        // ============================================================
         if (in_array('support_view', $permissions) || in_array('support_manage', $permissions) || $isSuperAdmin) {
             $submenus = [];
             if (in_array('support_view', $permissions) || $isSuperAdmin) {
@@ -439,6 +497,9 @@ if (!function_exists('get_admin_menu')) {
             }
         }
         
+        // ============================================================
+        // FALLBACK - If no menu items, show at least Dashboard
+        // ============================================================
         if (empty($menu)) {
             $menu[] = ['icon' => 'fa-tachometer-alt', 'label' => 'Dashboard', 'route' => '/dashboard', 'active' => ['dashboard']];
         }

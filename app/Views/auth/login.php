@@ -468,8 +468,8 @@
         <?php endif; ?>
 
         <!-- ========== LOGIN FORM ========== -->
-        <form action="<?= base_url('login/authenticate') ?>" method="post">
-            <?= csrf_field() ?>
+        <form action="<?= base_url('authenticate') ?>" method="post">
+    <?= csrf_field() ?>
 
             <div class="floating-group">
                 <div class="input-wrapper">

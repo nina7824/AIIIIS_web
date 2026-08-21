@@ -500,7 +500,7 @@
 <section class="chat-section">
     <div class="container">
         <div class="chat-container">
-            <!-- Chat Header -->
+            <!-- Chat Header - Simplified -->
             <div class="chat-header">
                 <div class="chat-info">
                     <div class="chat-avatar">
@@ -510,7 +510,9 @@
                         <h5>NIRDA Support Team</h5>
                         <span class="status">
                             <span class="dot"></span> 
-                            <span id="supportStatus">Online — AI Powered Assistant</span>
+                            <span id="supportStatus">
+                                <span id="kbStatus">NIRDA AI</span>
+                            </span>
                         </span>
                     </div>
                 </div>
@@ -563,13 +565,13 @@
         
         // Define Email addresses for each service
         $emailAddresses = [
-    'operations-followup' => 'amandin.mihigo@nirda.rw',  // ← Added @
-    'business-advisor' => 'munyamboalvin04@gmail.com',
-    'technical-support' => 'uwimbabaziange31@gmail.com',
-    'rd-services' => 'evelynimutuyimana17@gmail.com',
-    'stem-services' => 'ninaumukundwa@gmail.com',
-    'investor-matchmaking' => 'rohschang@hanmail.net'
-];
+            'operations-followup' => 'amandin.mihigo@nirda.rw',
+            'business-advisor' => 'munyamboalvin04@gmail.com',
+            'technical-support' => 'uwimbabaziange31@gmail.com',
+            'rd-services' => 'evelynimutuyimana17@gmail.com',
+            'stem-services' => 'ninaumukundwa@gmail.com',
+            'investor-matchmaking' => 'rohschang@hanmail.net'
+        ];
         
         $serviceId = $service['id'];
         $whatsappNumber = $whatsappNumbers[$serviceId] ?? '+250788503323';
@@ -619,10 +621,12 @@
 
 <?= $this->section('scripts') ?>
 <script>
-// Chat state
+// NIRDA AI Chat - Simplified
+
 let serviceId = '<?= $service['id'] ?>';
 let messageCount = 0;
 const MAX_MESSAGES = 50;
+let sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
 
 // Auto-resize textarea
 document.getElementById('chatInput').addEventListener('input', function() {
@@ -630,7 +634,12 @@ document.getElementById('chatInput').addEventListener('input', function() {
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
 });
 
-// Send message function - Uses AI Knowledge Base Only
+// Simple status - just NIRDA AI
+function checkAGStatus() {
+    // Always show NIRDA AI
+    document.getElementById('kbStatus').textContent = 'NIRDA AI';
+}
+
 function sendMessage() {
     const input = document.getElementById('chatInput');
     const message = input.value.trim();
@@ -643,67 +652,52 @@ function sendMessage() {
     // Clear input
     input.value = '';
     input.style.height = 'auto';
-    document.getElementById('sendButton').disabled = true;
+    const sendBtn = document.getElementById('sendButton');
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Searching...';
     
     // Show typing indicator
     addTypingIndicator();
     
-    // Search knowledge base for answer
-    const formData = new FormData();
-    formData.append('service_id', serviceId);
-    formData.append('message', message);
-    
-    fetch('<?= base_url("chatbot/process") ?>', {
+    // Call Flask API directly
+    fetch('http://localhost:5000/api/chat', {
         method: 'POST',
-        body: formData
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message: message,
+            service_id: serviceId,
+            session_id: sessionId
+        })
     })
     .then(response => response.json())
     .then(data => {
-        // Remove typing indicator
         removeTypingIndicator();
         
         if (data.success && data.reply) {
-            // Display bot reply from knowledge base
-            addMessage(data.reply, 'support');
+            let reply = data.reply;
+            let source = data.source || 'unknown';
+            
+            
+            
+            addMessage(reply, 'support');
         } else {
-            // If no answer found, show default message
             const defaultReply = "I'm sorry, I don't have an answer for that question yet. Please contact us via WhatsApp or Email for more assistance.";
             addMessage(defaultReply, 'support');
         }
-        document.getElementById('sendButton').disabled = false;
+        
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
     })
     .catch(error => {
-        // Remove typing indicator
         removeTypingIndicator();
         console.error('Error:', error);
-        const errorReply = "I'm having trouble connecting to the knowledge base. Please try again later or contact us via WhatsApp or Email.";
+        const errorReply = "I'm having trouble connecting to the system. Please try again later or contact us via WhatsApp or Email.";
         addMessage(errorReply, 'support');
-        document.getElementById('sendButton').disabled = false;
+        sendBtn.disabled = false;
+        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send';
     });
 }
 
-// Typing indicator functions
-function addTypingIndicator() {
-    const messagesContainer = document.getElementById('chatMessages');
-    const typingDiv = document.createElement('div');
-    typingDiv.className = 'message support typing-indicator';
-    typingDiv.id = 'typingIndicator';
-    typingDiv.innerHTML = `
-        <span class="dot-typing"></span> NIRDA Assistant is typing...
-        <span class="message-time">${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
-    `;
-    messagesContainer.appendChild(typingDiv);
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-function removeTypingIndicator() {
-    const typingDiv = document.getElementById('typingIndicator');
-    if (typingDiv) {
-        typingDiv.remove();
-    }
-}
-
-// Add message to chat
 function addMessage(text, type) {
     const messagesContainer = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
@@ -716,8 +710,11 @@ function addMessage(text, type) {
         hour12: true 
     });
     
+    // Convert \n to <br> for proper display
+    const formattedText = text.replace(/\n/g, '<br>');
+    
     messageDiv.innerHTML = `
-        ${text}
+        ${formattedText}
         <span class="message-time">${timeString}</span>
     `;
     
@@ -735,7 +732,26 @@ function addMessage(text, type) {
     }
 }
 
-// Clear chat
+function addTypingIndicator() {
+    const messagesContainer = document.getElementById('chatMessages');
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'message support typing-indicator';
+    typingDiv.id = 'typingIndicator';
+    typingDiv.innerHTML = `
+        <span class="dot-typing"></span> NIRDA AI is thinking...
+        <span class="message-time">${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</span>
+    `;
+    messagesContainer.appendChild(typingDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    const typingDiv = document.getElementById('typingIndicator');
+    if (typingDiv) {
+        typingDiv.remove();
+    }
+}
+
 function clearChat() {
     if (confirm('Clear all chat messages?')) {
         const messagesContainer = document.getElementById('chatMessages');
@@ -755,6 +771,7 @@ function clearChat() {
 // Focus input on load
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('chatInput').focus();
+    document.getElementById('kbStatus').textContent = 'NIRDA AI';
 });
 </script>
 <?= $this->endSection() ?>
