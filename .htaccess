@@ -3,25 +3,22 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /aiiiis/
-
-    # Redirect to remove public from URL
-    RewriteCond %{THE_REQUEST} ^GET.*public/
-    RewriteRule ^public/(.*) /aiiiis/$1 [L,R=301]
-
-    # If the requested file exists in public, serve it directly
+    RewriteBase /AIIIIS_web/
+    
+    # If the request is for a real file or directory in public, serve it directly
     RewriteCond %{DOCUMENT_ROOT}/public/%{REQUEST_URI} -f
     RewriteRule ^(.*)$ public/$1 [L]
-
-    # Otherwise, route through public/index.php
+    
+    # If the request is NOT for a real file or directory
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ public/index.php/$1 [L]
+    
+    # Route everything else through root index.php
+    RewriteRule ^(.*)$ index.php/$1 [L]
 </IfModule>
 
 <IfModule !mod_rewrite.c>
-    ErrorDocument 404 /aiiiis/index.php
+    ErrorDocument 404 /AIIIIS_web/index.php
 </IfModule>
 
-# Disable server signature
 ServerSignature Off

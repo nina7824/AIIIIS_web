@@ -431,40 +431,47 @@
                 <input type="hidden" id="roleId" value="<?= $role['role_id'] ?>">
                 
                 <table>
-                    <thead>
-                        <tr>
-                            <th style="min-width: 280px;">
-                                <span style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-cubes" style="color: var(--primary);"></i>
-                                    Menu / Module
-                                </span>
-                            </th>
-                            <th class="text-center" style="min-width: 90px; width: 90px;">
-                                <div class="perm-header-icon">
-                                    <i class="fas fa-eye" style="color: #3b82f6;"></i>
-                                    <span>View</span>
-                                </div>
-                            </th>
-                            <th class="text-center" style="min-width: 90px; width: 90px;">
-                                <div class="perm-header-icon">
-                                    <i class="fas fa-plus" style="color: #22c55e;"></i>
-                                    <span>Add</span>
-                                </div>
-                            </th>
-                            <th class="text-center" style="min-width: 90px; width: 90px;">
-                                <div class="perm-header-icon">
-                                    <i class="fas fa-edit" style="color: #eab308;"></i>
-                                    <span>Edit</span>
-                                </div>
-                            </th>
-                            <th class="text-center" style="min-width: 90px; width: 90px;">
-                                <div class="perm-header-icon">
-                                    <i class="fas fa-trash" style="color: #ef4444;"></i>
-                                    <span>Delete</span>
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
+                    <!-- In the table header, add condition for Super Admin -->
+<thead>
+    <tr>
+        <th style="min-width: 280px;">
+            <span style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-cubes" style="color: var(--primary);"></i>
+                Menu / Module
+            </span>
+        </th>
+        <?php if (!$isSuperAdmin): ?>
+            <th class="text-center" style="min-width: 90px; width: 90px;">
+                <div class="perm-header-icon">
+                    <i class="fas fa-eye" style="color: #3b82f6;"></i>
+                    <span>View</span>
+                </div>
+            </th>
+            <th class="text-center" style="min-width: 90px; width: 90px;">
+                <div class="perm-header-icon">
+                    <i class="fas fa-plus" style="color: #22c55e;"></i>
+                    <span>Add</span>
+                </div>
+            </th>
+            <th class="text-center" style="min-width: 90px; width: 90px;">
+                <div class="perm-header-icon">
+                    <i class="fas fa-edit" style="color: #eab308;"></i>
+                    <span>Edit</span>
+                </div>
+            </th>
+            <th class="text-center" style="min-width: 90px; width: 90px;">
+                <div class="perm-header-icon">
+                    <i class="fas fa-trash" style="color: #ef4444;"></i>
+                    <span>Delete</span>
+                </div>
+            </th>
+        <?php else: ?>
+            <th class="text-center" style="min-width: 90px; width: 90px;">
+                <span style="color: var(--primary); font-weight: 700;">All Permissions</span>
+            </th>
+        <?php endif; ?>
+    </tr>
+</thead>
                     <tbody>
                         <?php if (!empty($menuTree)): ?>
                             <?php foreach ($menuTree as $category): ?>

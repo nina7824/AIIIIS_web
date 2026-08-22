@@ -3,7 +3,7 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /aiiiis/
+    RewriteBase /AIIIIS_web/
     
     # Redirect Trailing Slashes...
     RewriteCond %{REQUEST_FILENAME} !-d
@@ -26,7 +26,7 @@ Options -Indexes
 </IfModule>
 
 <IfModule !mod_rewrite.c>
-    ErrorDocument 404 /aiiiis/index.php
+    ErrorDocument 404 /AIIIIS_web/index.php
 </IfModule>
 
 # Disable server signature

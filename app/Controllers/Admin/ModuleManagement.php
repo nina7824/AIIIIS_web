@@ -4,8 +4,6 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Models\ModuleModel;
-use App\Models\PermissionModel;
 
 class ModuleManagement extends BaseController
 {
@@ -14,8 +12,8 @@ class ModuleManagement extends BaseController
 
     public function __construct()
     {
-        $this->moduleModel = new ModuleModel();
-        $this->permissionModel = new PermissionModel();
+        $this->moduleModel = model('App\Models\ModuleModel');
+        $this->permissionModel = model('App\Models\PermissionModel');
     }
 
     public function index()
@@ -27,11 +25,9 @@ class ModuleManagement extends BaseController
         $data = [
             'page_title' => 'Module Management',
             'breadcrumb' => 'Modules',
-            'modules' => $this->moduleModel->getModulesWithPermissions(),
-            'categories' => $this->moduleModel->getCategories(),
             'total_modules' => $this->moduleModel->countAll(),
             'active_modules' => $this->moduleModel->where('is_active', 1)->countAllResults(),
-            'category_count' => count($this->moduleModel->getCategories())
+            'category_count' => $this->moduleModel->where('is_category', 1)->countAllResults()
         ];
 
         return $this->renderAdmin('admin/modules/index', $data);
@@ -144,6 +140,115 @@ class ModuleManagement extends BaseController
         ]);
     }
 
+    public function getCategories()
+    {
+        if (!$this->hasPermission('modules_manage')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
+        }
+
+        try {
+            $categories = $this->moduleModel
+                ->where('is_category', 1)
+                ->where('is_active', 1)
+                ->orderBy('name', 'ASC')
+                ->findAll();
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data' => $categories,
+                'count' => count($categories),
+                'csrf_token' => csrf_hash()
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in getCategories: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to load categories: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getIcons()
+    {
+        if (!$this->hasPermission('modules_manage')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
+        }
+
+        $icons = $this->getIconList();
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $icons,
+            'csrf_token' => csrf_hash()
+        ]);
+    }
+
+    private function getIconList()
+    {
+        return [
+            ['value' => 'fa-cube', 'label' => 'Cube'],
+            ['value' => 'fa-folder', 'label' => 'Folder'],
+            ['value' => 'fa-headset', 'label' => 'Headset'],
+            ['value' => 'fa-book-open', 'label' => 'Book Open'],
+            ['value' => 'fa-users', 'label' => 'Users'],
+            ['value' => 'fa-user-tie', 'label' => 'User Tie'],
+            ['value' => 'fa-bullhorn', 'label' => 'Bullhorn'],
+            ['value' => 'fa-handshake', 'label' => 'Handshake'],
+            ['value' => 'fa-file-contract', 'label' => 'File Contract'],
+            ['value' => 'fa-chart-line', 'label' => 'Chart Line'],
+            ['value' => 'fa-building', 'label' => 'Building'],
+            ['value' => 'fa-concierge-bell', 'label' => 'Concierge Bell'],
+            ['value' => 'fa-industry', 'label' => 'Industry'],
+            ['value' => 'fa-file-signature', 'label' => 'File Signature'],
+            ['value' => 'fa-cog', 'label' => 'Cog'],
+            ['value' => 'fa-cogs', 'label' => 'Cogs'],
+            ['value' => 'fa-robot', 'label' => 'Robot'],
+            ['value' => 'fa-newspaper', 'label' => 'Newspaper'],
+            ['value' => 'fa-rocket', 'label' => 'Rocket'],
+            ['value' => 'fa-comment-dots', 'label' => 'Comment Dots'],
+            ['value' => 'fa-ticket-alt', 'label' => 'Ticket'],
+            ['value' => 'fa-question-circle', 'label' => 'Question Circle'],
+            ['value' => 'fa-database', 'label' => 'Database'],
+            ['value' => 'fa-user-edit', 'label' => 'User Edit'],
+            ['value' => 'fa-user-plus', 'label' => 'User Plus'],
+            ['value' => 'fa-user-minus', 'label' => 'User Minus'],
+            ['value' => 'fa-user-check', 'label' => 'User Check'],
+            ['value' => 'fa-users-cog', 'label' => 'Users Cog'],
+            ['value' => 'fa-shield-alt', 'label' => 'Shield'],
+            ['value' => 'fa-lock', 'label' => 'Lock'],
+            ['value' => 'fa-unlock', 'label' => 'Unlock'],
+            ['value' => 'fa-key', 'label' => 'Key'],
+            ['value' => 'fa-envelope', 'label' => 'Envelope'],
+            ['value' => 'fa-phone', 'label' => 'Phone'],
+            ['value' => 'fa-globe', 'label' => 'Globe'],
+            ['value' => 'fa-map-marker-alt', 'label' => 'Map Marker'],
+            ['value' => 'fa-clock', 'label' => 'Clock'],
+            ['value' => 'fa-calendar', 'label' => 'Calendar'],
+            ['value' => 'fa-upload', 'label' => 'Upload'],
+            ['value' => 'fa-download', 'label' => 'Download'],
+            ['value' => 'fa-print', 'label' => 'Print'],
+            ['value' => 'fa-search', 'label' => 'Search'],
+            ['value' => 'fa-filter', 'label' => 'Filter'],
+            ['value' => 'fa-sort', 'label' => 'Sort'],
+            ['value' => 'fa-export', 'label' => 'Export'],
+            ['value' => 'fa-import', 'label' => 'Import'],
+            ['value' => 'fa-file-alt', 'label' => 'File Alt'],
+            ['value' => 'fa-file-pdf', 'label' => 'PDF'],
+            ['value' => 'fa-file-word', 'label' => 'Word'],
+            ['value' => 'fa-file-excel', 'label' => 'Excel'],
+            ['value' => 'fa-file-image', 'label' => 'Image'],
+            ['value' => 'fa-file-archive', 'label' => 'Archive'],
+            ['value' => 'fa-file-code', 'label' => 'Code'],
+            ['value' => 'fa-chart-pie', 'label' => 'Chart Pie'],
+            ['value' => 'fa-chart-bar', 'label' => 'Chart Bar'],
+            ['value' => 'fa-chart-area', 'label' => 'Chart Area'],
+            ['value' => 'fa-wallet', 'label' => 'Wallet'],
+            ['value' => 'fa-credit-card', 'label' => 'Credit Card'],
+            ['value' => 'fa-money-bill', 'label' => 'Money Bill'],
+            ['value' => 'fa-piggy-bank', 'label' => 'Piggy Bank'],
+        ];
+    }
+
     public function generateSlug()
     {
         if (!$this->hasPermission('modules_manage')) {
@@ -170,7 +275,8 @@ class ModuleManagement extends BaseController
             return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
         }
 
-        $nextOrder = $this->moduleModel->getNextSortOrder();
+        $parentId = $this->request->getPost('parent_id');
+        $nextOrder = $this->moduleModel->getNextSortOrder($parentId);
 
         return $this->response->setJSON([
             'status' => 'success',
@@ -192,7 +298,8 @@ class ModuleManagement extends BaseController
             'icon' => 'permit_empty|min_length[2]|max_length[50]',
             'description' => 'permit_empty|max_length[500]',
             'is_active' => 'permit_empty|in_list[0,1]',
-            'is_category' => 'permit_empty|in_list[0,1]'
+            'is_category' => 'permit_empty|in_list[0,1]',
+            'create_permissions' => 'permit_empty|in_list[0,1]'
         ];
 
         if (!$this->validate($rules)) {
@@ -208,24 +315,35 @@ class ModuleManagement extends BaseController
         if (empty($slug)) {
             $slug = $this->moduleModel->generateSlug($name);
         }
-        
-        $sortOrder = $this->request->getPost('sort_order');
-        if ($sortOrder === null || $sortOrder === '' || $sortOrder == 0) {
-            $sortOrder = $this->moduleModel->getNextSortOrder();
+
+        $existing = $this->moduleModel->where('slug', $slug)->first();
+        if ($existing) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => ['slug' => 'A module with this slug already exists. Please use a different name.']
+            ]);
         }
 
         $parentId = $this->request->getPost('parent_id');
-        if ($parentId === '') $parentId = null;
+        if ($parentId === '' || $parentId === null || $parentId === 'null') {
+            $parentId = null;
+        }
 
         $isCategory = $this->request->getPost('is_category') ?? 0;
-        $createPermissions = $this->request->getPost('create_permissions') ?? 0;
+        $createPermissions = $this->request->getPost('create_permissions') ?? 1;
+
+        if ($isCategory == 1) {
+            $parentId = null;
+        }
+
+        $sortOrder = $this->moduleModel->getNextSortOrder($parentId);
 
         $data = [
             'name' => $name,
             'slug' => $slug,
             'parent_id' => $parentId,
-            'icon' => $this->request->getPost('icon') ?: 'fa-cube',
-            'description' => $this->request->getPost('description'),
+            'icon' => $this->request->getPost('icon') ?: ($isCategory == 1 ? 'fa-folder' : 'fa-cube'),
+            'description' => $this->request->getPost('description') ?: '',
             'is_active' => $this->request->getPost('is_active') ?? 1,
             'is_category' => $isCategory,
             'sort_order' => $sortOrder
@@ -242,13 +360,14 @@ class ModuleManagement extends BaseController
             
             if ($createPermissions == 1 && $isCategory == 0) {
                 $permissionsCreated = $this->createDefaultPermissions($moduleSlug, $moduleName);
-                $permissionsMessage = $permissionsCreated ? '4 default permissions created!' : 'Failed to create permissions.';
+                $permissionsMessage = $permissionsCreated ? '5 default permissions created!' : 'Failed to create permissions.';
                 if ($permissionsCreated) {
                     $permissions = [
                         $moduleSlug . '_view',
                         $moduleSlug . '_add',
                         $moduleSlug . '_edit',
-                        $moduleSlug . '_delete'
+                        $moduleSlug . '_delete',
+                        $moduleSlug . '_manage'
                     ];
                 }
             }
@@ -276,12 +395,19 @@ class ModuleManagement extends BaseController
     {
         try {
             $db = \Config\Database::connect();
-            $permissions = [
-                ['name' => 'View ' . $moduleName, 'slug' => $moduleSlug . '_view', 'module' => $moduleSlug, 'description' => 'View ' . $moduleName . ' items'],
-                ['name' => 'Add ' . $moduleName, 'slug' => $moduleSlug . '_add', 'module' => $moduleSlug, 'description' => 'Add new ' . $moduleName],
-                ['name' => 'Edit ' . $moduleName, 'slug' => $moduleSlug . '_edit', 'module' => $moduleSlug, 'description' => 'Edit ' . $moduleName],
-                ['name' => 'Delete ' . $moduleName, 'slug' => $moduleSlug . '_delete', 'module' => $moduleSlug, 'description' => 'Delete ' . $moduleName]
-            ];
+            
+            $actions = ['view', 'add', 'edit', 'delete', 'manage'];
+            $permissions = [];
+            
+            foreach ($actions as $action) {
+                $permissions[] = [
+                    'name' => ucfirst($action) . ' ' . $moduleName,
+                    'slug' => $moduleSlug . '_' . $action,
+                    'module' => $moduleSlug,
+                    'description' => 'Can ' . $action . ' ' . $moduleName . ' items',
+                    'is_active' => 1
+                ];
+            }
 
             $inserted = 0;
             foreach ($permissions as $perm) {
@@ -296,32 +422,39 @@ class ModuleManagement extends BaseController
                 }
             }
 
+            if ($inserted > 0) {
+                $superAdminId = $db->table('roles')
+                    ->where('slug', 'super_admin')
+                    ->get()
+                    ->getRow()
+                    ->role_id ?? null;
+                
+                if ($superAdminId) {
+                    $permissionIds = $db->table('permissions')
+                        ->where('module', $moduleSlug)
+                        ->select('permission_id')
+                        ->get()
+                        ->getResultArray();
+                    
+                    $rolePermissions = [];
+                    foreach ($permissionIds as $perm) {
+                        $rolePermissions[] = [
+                            'role_id' => $superAdminId,
+                            'permission_id' => $perm['permission_id']
+                        ];
+                    }
+                    
+                    if (!empty($rolePermissions)) {
+                        $db->table('role_permissions')->insertBatch($rolePermissions);
+                    }
+                }
+            }
+
             return $inserted > 0;
         } catch (\Exception $e) {
             log_message('error', 'Error creating default permissions: ' . $e->getMessage());
             return false;
         }
-    }
-
-    public function edit($module_id)
-    {
-        if (!$this->hasPermission('modules_manage')) {
-            return redirect()->to('/dashboard')->with('error', 'You do not have permission to edit modules.');
-        }
-
-        $module = $this->moduleModel->where('module_id', $module_id)->first();
-        if (!$module) {
-            return redirect()->to('/admin/modules')->with('error', 'Module not found.');
-        }
-
-        $data = [
-            'page_title' => 'Edit Module',
-            'breadcrumb' => 'Edit Module',
-            'module' => $module,
-            'categories' => $this->moduleModel->getCategories()
-        ];
-
-        return $this->renderAdmin('admin/modules/edit', $data);
     }
 
     public function update($module_id = null)
@@ -358,16 +491,23 @@ class ModuleManagement extends BaseController
         }
 
         $parentId = $this->request->getPost('parent_id');
-        if ($parentId === '') $parentId = null;
+        if ($parentId === '' || $parentId === null || $parentId === 'null') {
+            $parentId = null;
+        }
+
+        $isCategory = $this->request->getPost('is_category') ?? 0;
+        if ($isCategory == 1) {
+            $parentId = null;
+        }
 
         $data = [
             'name' => $this->request->getPost('name'),
             'slug' => $this->request->getPost('slug'),
             'parent_id' => $parentId,
-            'icon' => $this->request->getPost('icon') ?: 'fa-cube',
-            'description' => $this->request->getPost('description'),
+            'icon' => $this->request->getPost('icon') ?: ($isCategory == 1 ? 'fa-folder' : 'fa-cube'),
+            'description' => $this->request->getPost('description') ?: '',
             'is_active' => $this->request->getPost('is_active') ?? 1,
-            'is_category' => $this->request->getPost('is_category') ?? 0,
+            'is_category' => $isCategory,
             'sort_order' => $this->request->getPost('sort_order') ?? 0
         ];
 
@@ -385,29 +525,46 @@ class ModuleManagement extends BaseController
         ]);
     }
 
-    public function delete($module_id = null)
-    {
-        if (!$this->hasPermission('modules_manage')) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
-        }
+   public function delete($module_id = null)
+{
+    // Check if user has permission
+    if (!$this->hasPermission('modules_manage')) {
+        return $this->response->setJSON([
+            'status' => 'error', 
+            'message' => 'Permission denied'
+        ]);
+    }
 
-        if (!$module_id) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Module ID is required']);
-        }
+    if (!$module_id) {
+        return $this->response->setJSON([
+            'status' => 'error', 
+            'message' => 'Module ID is required'
+        ]);
+    }
 
-        $module = $this->moduleModel->where('module_id', $module_id)->first();
-        if (!$module) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Module not found']);
-        }
+    // Get the module
+    $module = $this->moduleModel->where('module_id', $module_id)->first();
+    if (!$module) {
+        return $this->response->setJSON([
+            'status' => 'error', 
+            'message' => 'Module not found'
+        ]);
+    }
 
-        $permissions = $this->permissionModel->where('module', $module['slug'])->countAllResults();
-        if ($permissions > 0) {
-            return $this->response->setJSON([
-                'status' => 'error',
-                'message' => 'Cannot delete module with existing permissions (' . $permissions . '). Please delete the permissions first.'
-            ]);
-        }
+    // Check if module has children
+    $children = $this->moduleModel->where('parent_id', $module_id)->countAllResults();
+    if ($children > 0) {
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => 'Cannot delete a category that has sub-modules. Delete or reassign sub-modules first.'
+        ]);
+    }
 
+    try {
+        // Delete permissions for this module
+        $this->permissionModel->where('module', $module['slug'])->delete();
+
+        // Delete the module
         if ($this->moduleModel->where('module_id', $module_id)->delete()) {
             return $this->response->setJSON([
                 'status' => 'success',
@@ -420,7 +577,14 @@ class ModuleManagement extends BaseController
             'status' => 'error',
             'message' => 'Failed to delete module. Please try again.'
         ]);
+    } catch (\Exception $e) {
+        log_message('error', 'Delete error: ' . $e->getMessage());
+        return $this->response->setJSON([
+            'status' => 'error',
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
     }
+}
 
     public function toggleStatus($module_id = null)
     {
@@ -504,6 +668,48 @@ class ModuleManagement extends BaseController
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Failed to reorder modules: ' . $e->getMessage()
+            ]);
+        }
+    }
+
+    public function getSubModules($parent_id = null)
+    {
+        if (!$this->hasPermission('modules_manage')) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Permission denied']);
+        }
+
+        $modules = $this->moduleModel
+            ->where('parent_id', $parent_id)
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->findAll();
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'data' => $modules,
+            'csrf_token' => csrf_hash()
+        ]);
+    }
+
+    public function debugCategories()
+    {
+        try {
+            $db = \Config\Database::connect();
+            $query = $db->query("SELECT * FROM modules WHERE is_category = 1 ORDER BY name ASC");
+            $categories = $query->getResultArray();
+            $countQuery = $db->query("SELECT COUNT(*) as count FROM modules WHERE is_category = 1");
+            $count = $countQuery->getRow()->count ?? 0;
+            
+            return $this->response->setJSON([
+                'status' => 'success',
+                'total_categories' => $count,
+                'categories' => $categories,
+                'columns' => !empty($categories) ? array_keys($categories[0]) : []
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => $e->getMessage()
             ]);
         }
     }

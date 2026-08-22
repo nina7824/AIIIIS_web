@@ -1,453 +1,296 @@
 <?php
-// app/Helpers/admin_menu_helper.php
-
 if (!function_exists('get_admin_menu')) {
-    function get_admin_menu($user)
+    /**
+     * Get dynamic admin menu based on user permissions
+     * 
+     * @param mixed $user User ID or user data array
+     * @return array Menu structure
+     */
+    function get_admin_menu($user = null)
     {
-        $role = is_array($user) ? ($user['role'] ?? 'enterprise') : $user;
-        $permissions = session()->get('permissions') ?? [];
+        $db = \Config\Database::connect();
+        $session = session();
         
-        if (is_array($user) && isset($user['permissions'])) {
-            $permissions = $user['permissions'];
+        // Get user ID
+        if ($user === null) {
+            $userId = $session->get('user_id');
+        } elseif (is_array($user)) {
+            $userId = $user['user_id'] ?? $user['id'] ?? null;
+        } else {
+            $userId = $user;
         }
         
-        $isSuperAdmin = false;
-        $superAdminRoles = ['super_admin', 'Super Admin', 'Administrator', 'admin'];
-        
-        if (is_string($role)) {
-            $isSuperAdmin = in_array(strtolower($role), array_map('strtolower', $superAdminRoles));
+        if (!$userId) {
+            return [get_default_menu()];
         }
         
-        if (is_array($user) && isset($user['role'])) {
-            $isSuperAdmin = in_array(strtolower($user['role']), array_map('strtolower', $superAdminRoles));
+        // Get user's role from database
+        $userData = $db->table('users')->select('role')->where('user_id', $userId)->get()->getRow();
+        $role = $userData->role ?? 'enterprise';
+        
+        // Get permissions from session
+        $userPermissions = $session->get('permissions') ?? [];
+        
+        // If session has no permissions, load them
+        if (empty($userPermissions)) {
+            $pm = new \App\Libraries\PermissionManager();
+            $userPermissions = $pm->getUserPermissions($userId);
+            $session->set('permissions', $userPermissions);
         }
         
-        // If super admin, grant all permissions - NO is_active check
+        // Check if Super Admin (from session or database)
+        $isSuperAdmin = in_array($role, ['super_admin', 'administrator']);
+        
+        // If Super Admin, get ALL permissions
         if ($isSuperAdmin) {
-            try {
-                $db = \Config\Database::connect();
-                $tables = $db->listTables();
-                
-                if (in_array('permissions', $tables)) {
-                    // Get ALL permissions - NO WHERE clause
-                    $allPermissions = $db->table('permissions')
-                        ->select('slug')
-                        ->get()
-                        ->getResultArray();
-                    
-                    $allPermissionSlugs = array_column($allPermissions, 'slug');
-                    $permissions = array_merge($permissions, $allPermissionSlugs);
+            $allPermissions = $db->table('permissions')
+                ->select('slug')
+                ->where('is_active', 1)
+                ->get()
+                ->getResultArray();
+            $userPermissions = array_column($allPermissions, 'slug');
+            $session->set('permissions', $userPermissions);
+        }
+        
+        // Get ALL active modules
+        $allModules = $db->table('modules')
+            ->where('is_active', 1)
+            ->orderBy('sort_order', 'ASC')
+            ->get()
+            ->getResultArray();
+        
+        // Separate categories and sub-modules
+        $categories = [];
+        $subModules = [];
+        
+        foreach ($allModules as $module) {
+            if ($module['is_category'] == 1) {
+                $categories[$module['module_id']] = $module;
+            } else {
+                $parentId = $module['parent_id'] ?? 0;
+                if (!isset($subModules[$parentId])) {
+                    $subModules[$parentId] = [];
                 }
-            } catch (\Exception $e) {
-                log_message('error', 'Error fetching permissions in menu: ' . $e->getMessage());
+                $subModules[$parentId][] = $module;
             }
-            
-            // Add default permissions
-            $permissions = array_merge($permissions, [
-                'dashboard_view',
-                'users_view', 'users_manage', 'users_add', 'users_edit', 'users_delete',
-                'permissions_view', 'permissions_manage',
-                'roles_view', 'roles_manage',
-                'modules_view', 'modules_manage',
-                'enterprises_view', 'enterprises_manage', 'enterprises_add', 'enterprises_edit', 'enterprises_delete', 'enterprises_verify',
-                'clusters_view', 'clusters_manage', 'clusters_add', 'clusters_edit', 'clusters_delete', 'clusters_assign', 'clusters_analytics_view',
-                'services_view', 'services_manage', 'services_add', 'services_edit', 'services_delete',
-                'investors_view', 'investors_manage', 'investors_add', 'investors_edit', 'investors_delete', 'investors_verify',
-                'reports_view', 'reports_manage', 'reports_add', 'reports_edit', 'reports_delete',
-                'matchmaking_view', 'matchmaking_manage', 'matchmaking_add', 'matchmaking_edit', 'matchmaking_delete',
-                'sectors_view', 'sectors_manage', 'sectors_add', 'sectors_edit', 'sectors_delete',
-                'deals_view', 'deals_manage', 'deals_add', 'deals_edit', 'deals_delete',
-                'analytics_view', 'analytics_manage', 'analytics_export',
-                'settings_view', 'settings_manage', 'settings_edit',
-                'support_view', 'support_manage', 'support_add', 'support_edit', 'support_delete',
-                'chat_view', 'chat_manage',
-                'faq_view', 'faq_manage',
-                'knowledge_base_view', 'knowledge_base_manage',
-                'enterprise_ranking_view', 'enterprise_ranking_manage',
-                'service_categories_view', 'service_categories_manage',
-                'service_providers_view', 'service_providers_manage',
-                'service_requests_view', 'service_requests_manage',
-                'service_bookings_view', 'service_bookings_manage',
-                'service_reviews_view', 'service_reviews_manage'
-            ]);
-            
-            $permissions = array_unique($permissions);
         }
         
         // Build menu
         $menu = [];
         
-        // DASHBOARD
-        if (in_array('dashboard_view', $permissions) || $isSuperAdmin) {
-            $menu[] = [
-                'icon' => 'fa-tachometer-alt', 
-                'label' => 'Dashboard', 
-                'route' => '/dashboard', 
-                'active' => ['dashboard']
-            ];
-        }
+        // Dashboard always first (always visible)
+        $menu[] = [
+            'icon' => 'fa-tachometer-alt',
+            'label' => 'Dashboard',
+            'route' => '/dashboard',
+            'active' => ['dashboard']
+        ];
         
-        // USER MANAGEMENT
-        if (in_array('users_view', $permissions) || in_array('users_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            
-            if (in_array('users_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'All Users', 'route' => '/admin/users', 'icon' => 'fa-users'];
-            }
-            if (in_array('users_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add User', 'route' => '/admin/users/create', 'icon' => 'fa-user-plus'];
-            }
-            if (in_array('users_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Users', 'route' => '/admin/users', 'icon' => 'fa-edit'];
-            }
-            if (in_array('users_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Users', 'route' => '/admin/users', 'icon' => 'fa-trash'];
-            }
-            if (in_array('roles_view', $permissions) || in_array('roles_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Roles', 'route' => '/admin/roles', 'icon' => 'fa-user-shield'];
+        // Build categories with submenus - ONLY if user has permissions
+        $hasAnyPermission = false;
+        
+        foreach ($categories as $categoryId => $category) {
+            if (!isset($subModules[$categoryId]) || empty($subModules[$categoryId])) {
+                continue;
             }
             
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-users-cog', 
-                    'label' => 'User Management', 
-                    'route' => '#', 
-                    'active' => ['admin/users', 'admin/roles'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // PERMISSIONS
-        if (in_array('permissions_view', $permissions) || in_array('permissions_manage', $permissions) || $isSuperAdmin) {
-            $menu[] = [
-                'icon' => 'fa-lock', 
-                'label' => 'Permissions', 
-                'route' => '/admin/permissions', 
-                'active' => ['admin/permissions']
-            ];
-        }
-        
-        // MODULES
-        if (in_array('modules_view', $permissions) || in_array('modules_manage', $permissions) || $isSuperAdmin) {
-            $menu[] = [
-                'icon' => 'fa-cubes', 
-                'label' => 'Modules', 
-                'route' => '/admin/modules', 
-                'active' => ['admin/modules']
-            ];
-        }
-        
-        // ENTERPRISES
-        if (in_array('enterprises_view', $permissions) || in_array('enterprises_manage', $permissions) || $isSuperAdmin) {
+            $hasCategoryPermission = false;
             $submenus = [];
             
-            if (in_array('enterprises_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'All Enterprises', 'route' => '/admin/enterprises', 'icon' => 'fa-list'];
-            }
-            if (in_array('enterprises_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add Enterprise', 'route' => '/admin/enterprises/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('enterprises_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Enterprises', 'route' => '/admin/enterprises', 'icon' => 'fa-edit'];
-            }
-            if (in_array('enterprises_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Enterprises', 'route' => '/admin/enterprises', 'icon' => 'fa-trash'];
-            }
-            if (in_array('enterprises_verify', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Verify Enterprises', 'route' => '/admin/enterprises/verify', 'icon' => 'fa-check-circle'];
-            }
-            if (in_array('enterprise_ranking_view', $permissions) || in_array('enterprise_ranking_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Ranking', 'route' => '/admin/enterprises/ranking', 'icon' => 'fa-trophy'];
-            }
-            if (in_array('clusters_view', $permissions) || in_array('clusters_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Clusters', 'route' => '/admin/enterprises/clusters', 'icon' => 'fa-object-group'];
-            }
-            if (in_array('clusters_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add Cluster', 'route' => '/admin/enterprises/clusters/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('clusters_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Clusters', 'route' => '/admin/enterprises/clusters', 'icon' => 'fa-edit'];
-            }
-            if (in_array('clusters_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Clusters', 'route' => '/admin/enterprises/clusters', 'icon' => 'fa-trash'];
-            }
-            if (in_array('clusters_assign', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Assign Enterprises', 'route' => '/admin/enterprises/clusters/assign', 'icon' => 'fa-users'];
-            }
-            if (in_array('clusters_analytics_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Cluster Analytics', 'route' => '/admin/enterprises/clusters/analytics', 'icon' => 'fa-chart-pie'];
+            foreach ($subModules[$categoryId] as $subModule) {
+                $slug = $subModule['slug'];
+                
+                // Check if user has view permission for this module
+                $canView = $isSuperAdmin || 
+                           in_array($slug . '_view', $userPermissions) || 
+                           in_array($slug . '_manage', $userPermissions);
+                
+                if ($canView) {
+                    $hasCategoryPermission = true;
+                    $hasAnyPermission = true;
+                    $submenus[] = [
+                        'label' => $subModule['name'],
+                        'route' => '/admin/' . $slug,
+                        'icon' => $subModule['icon'] ?? 'fa-circle'
+                    ];
+                }
             }
             
-            if (!empty($submenus)) {
+            if ($hasCategoryPermission && !empty($submenus)) {
                 $menu[] = [
-                    'icon' => 'fa-building', 
-                    'label' => 'Enterprises', 
-                    'route' => '#', 
-                    'active' => ['admin/enterprises'],
+                    'icon' => $category['icon'] ?? 'fa-folder',
+                    'label' => $category['name'],
+                    'route' => '#',
+                    'active' => ['admin/' . $category['slug']],
                     'submenus' => $submenus
                 ];
             }
         }
         
-        // SERVICES
-        if (in_array('services_view', $permissions) || in_array('services_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('services_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'All Services', 'route' => '/admin/services', 'icon' => 'fa-list'];
-            }
-            if (in_array('services_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add Service', 'route' => '/admin/services/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('services_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Services', 'route' => '/admin/services', 'icon' => 'fa-edit'];
-            }
-            if (in_array('services_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Services', 'route' => '/admin/services', 'icon' => 'fa-trash'];
-            }
-            if (in_array('service_categories_view', $permissions) || in_array('service_categories_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Categories', 'route' => '/admin/services/categories', 'icon' => 'fa-tags'];
-            }
-            if (in_array('service_providers_view', $permissions) || in_array('service_providers_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Providers', 'route' => '/admin/services/providers', 'icon' => 'fa-user-md'];
-            }
-            if (in_array('service_requests_view', $permissions) || in_array('service_requests_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Requests', 'route' => '/admin/services/requests', 'icon' => 'fa-tasks'];
-            }
-            if (in_array('service_bookings_view', $permissions) || in_array('service_bookings_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Bookings', 'route' => '/admin/services/bookings', 'icon' => 'fa-calendar-check'];
-            }
-            if (in_array('service_reviews_view', $permissions) || in_array('service_reviews_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Reviews', 'route' => '/admin/services/reviews', 'icon' => 'fa-star'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-concierge-bell', 
-                    'label' => 'Services', 
-                    'route' => '#', 
-                    'active' => ['admin/services'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // INVESTORS
-        if (in_array('investors_view', $permissions) || in_array('investors_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('investors_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'All Investors', 'route' => '/admin/investors', 'icon' => 'fa-list'];
-            }
-            if (in_array('investors_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add Investor', 'route' => '/admin/investors/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('investors_verify', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Verify Investors', 'route' => '/admin/investors/verify', 'icon' => 'fa-check-circle'];
-            }
-            if (in_array('investors_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Investors', 'route' => '/admin/investors', 'icon' => 'fa-edit'];
-            }
-            if (in_array('investors_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Investors', 'route' => '/admin/investors', 'icon' => 'fa-trash'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-user-tie', 
-                    'label' => 'Investors', 
-                    'route' => '#', 
-                    'active' => ['admin/investors'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // REPORTS
-        if (in_array('reports_view', $permissions) || in_array('reports_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('reports_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'View Reports', 'route' => '/admin/reports', 'icon' => 'fa-chart-bar'];
-            }
-            if (in_array('reports_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add Report', 'route' => '/admin/reports/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('reports_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Reports', 'route' => '/admin/reports', 'icon' => 'fa-edit'];
-            }
-            if (in_array('reports_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Reports', 'route' => '/admin/reports', 'icon' => 'fa-trash'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-chart-bar', 
-                    'label' => 'Reports', 
-                    'route' => '#', 
-                    'active' => ['admin/reports'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // MATCHMAKING
-        if (in_array('matchmaking_view', $permissions) || in_array('matchmaking_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('matchmaking_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Find Matches', 'route' => '/admin/matchmaking', 'icon' => 'fa-search'];
-            }
-            if (in_array('matchmaking_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Create Match', 'route' => '/admin/matchmaking/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('matchmaking_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Match', 'route' => '/admin/matchmaking', 'icon' => 'fa-edit'];
-            }
-            if (in_array('matchmaking_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Match', 'route' => '/admin/matchmaking', 'icon' => 'fa-trash'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-handshake', 
-                    'label' => 'Match Making', 
-                    'route' => '#', 
-                    'active' => ['admin/matchmaking'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // SECTORS
-        if (in_array('sectors_view', $permissions) || in_array('sectors_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('sectors_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'All Sectors', 'route' => '/admin/sectors', 'icon' => 'fa-list'];
-            }
-            if (in_array('sectors_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Add Sector', 'route' => '/admin/sectors/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('sectors_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Sectors', 'route' => '/admin/sectors', 'icon' => 'fa-edit'];
-            }
-            if (in_array('sectors_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Sectors', 'route' => '/admin/sectors', 'icon' => 'fa-trash'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-industry', 
-                    'label' => 'Sectors', 
-                    'route' => '#', 
-                    'active' => ['admin/sectors'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // DEALS
-        if (in_array('deals_view', $permissions) || in_array('deals_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('deals_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'All Deals', 'route' => '/admin/deals', 'icon' => 'fa-list'];
-            }
-            if (in_array('deals_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Create Deal', 'route' => '/admin/deals/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('deals_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Deal', 'route' => '/admin/deals', 'icon' => 'fa-edit'];
-            }
-            if (in_array('deals_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Deal', 'route' => '/admin/deals', 'icon' => 'fa-trash'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-file-signature', 
-                    'label' => 'Deals', 
-                    'route' => '#', 
-                    'active' => ['admin/deals'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // ANALYTICS
-        if (in_array('analytics_view', $permissions) || in_array('analytics_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('analytics_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Overview', 'route' => '/admin/analytics', 'icon' => 'fa-home'];
-            }
-            if (in_array('analytics_export', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Export Analytics', 'route' => '/admin/analytics/export', 'icon' => 'fa-file-export'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-chart-line', 
-                    'label' => 'Analytics', 
-                    'route' => '#', 
-                    'active' => ['admin/analytics'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // SETTINGS
-        if (in_array('settings_view', $permissions) || in_array('settings_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('settings_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'System Settings', 'route' => '/admin/settings', 'icon' => 'fa-sliders-h'];
-            }
-            if (in_array('settings_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Settings', 'route' => '/admin/settings', 'icon' => 'fa-edit'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-cog', 
-                    'label' => 'Settings', 
-                    'route' => '#', 
-                    'active' => ['admin/settings'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        // SUPPORT
-        if (in_array('support_view', $permissions) || in_array('support_manage', $permissions) || $isSuperAdmin) {
-            $submenus = [];
-            if (in_array('support_view', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Tickets', 'route' => '/admin/support', 'icon' => 'fa-ticket-alt'];
-            }
-            if (in_array('support_add', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Create Ticket', 'route' => '/admin/support/create', 'icon' => 'fa-plus'];
-            }
-            if (in_array('support_edit', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Edit Tickets', 'route' => '/admin/support', 'icon' => 'fa-edit'];
-            }
-            if (in_array('support_delete', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Delete Tickets', 'route' => '/admin/support', 'icon' => 'fa-trash'];
-            }
-            if (in_array('chat_view', $permissions) || in_array('chat_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Live Chat', 'route' => '/admin/support/chat', 'icon' => 'fa-comment-dots'];
-            }
-            if (in_array('faq_view', $permissions) || in_array('faq_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'FAQ', 'route' => '/admin/support/faq', 'icon' => 'fa-question-circle'];
-            }
-            if (in_array('knowledge_base_view', $permissions) || in_array('knowledge_base_manage', $permissions) || $isSuperAdmin) {
-                $submenus[] = ['label' => 'Knowledge Base', 'route' => '/admin/support/knowledge-base', 'icon' => 'fa-book'];
-            }
-            if (!empty($submenus)) {
-                $menu[] = [
-                    'icon' => 'fa-headset', 
-                    'label' => 'Support', 
-                    'route' => '#', 
-                    'active' => ['admin/support'],
-                    'submenus' => $submenus
-                ];
-            }
-        }
-        
-        if (empty($menu)) {
-            $menu[] = ['icon' => 'fa-tachometer-alt', 'label' => 'Dashboard', 'route' => '/dashboard', 'active' => ['dashboard']];
+        // If user has NO permissions at all (except dashboard), return only dashboard
+        // This prevents the fallback User Management from showing
+        if (!$hasAnyPermission) {
+            return [get_default_menu()];
         }
         
         return $menu;
     }
 }
 
+
+if (!function_exists('get_default_menu')) {
+    /**
+     * Default menu when no permissions are found
+     */
+    function get_default_menu()
+    {
+        return [
+            'icon' => 'fa-tachometer-alt',
+            'label' => 'Dashboard',
+            'route' => '/dashboard',
+            'active' => ['dashboard']
+        ];
+    }
+}
+
+if (!function_exists('get_user_permissions')) {
+    /**
+     * Get all permissions for a user
+     */
+    function get_user_permissions($userId)
+    {
+        $db = \Config\Database::connect();
+        
+        if (is_array($userId)) {
+            $userId = $userId['user_id'] ?? $userId['id'] ?? null;
+        }
+        
+        if (!$userId) {
+            return [];
+        }
+        
+        // Get user's role
+        $user = $db->table('users')->select('role')->where('user_id', $userId)->get()->getRow();
+        
+        if (!$user) {
+            return [];
+        }
+        
+        // Super admin has all permissions
+        if (in_array($user->role, ['super_admin', 'administrator'])) {
+            $permissions = $db->table('permissions')
+                ->where('is_active', 1)
+                ->get()
+                ->getResultArray();
+            return array_column($permissions, 'slug');
+        }
+        
+        // Get permissions via user_roles
+        $permissions = $db->table('user_roles ur')
+            ->select('p.slug')
+            ->distinct()
+            ->join('role_permissions rp', 'rp.role_id = ur.role_id')
+            ->join('permissions p', 'p.permission_id = rp.permission_id')
+            ->where('ur.user_id', $userId)
+            ->where('p.is_active', 1)
+            ->get()
+            ->getResultArray();
+        
+        $permissionSlugs = array_column($permissions, 'slug');
+        
+        // Log for debugging
+        log_message('debug', 'User ' . $userId . ' has ' . count($permissionSlugs) . ' permissions');
+        
+        return $permissionSlugs;
+    }
+}
+
+
+if (!function_exists('has_permission')) {
+    /**
+     * Check if a user has a specific permission
+     */
+    function has_permission($userId, $slug)
+    {
+        $permissions = get_user_permissions($userId);
+        return in_array($slug, $permissions);
+    }
+}
+
+if (!function_exists('user_can')) {
+    /**
+     * Quick check for current user's permission
+     */
+    function user_can($slug)
+    {
+        $session = session();
+        $userId = $session->get('user_id');
+        $role = $session->get('role');
+        
+        // Super admin has all permissions
+        if (in_array($role, ['super_admin', 'administrator'])) {
+            return true;
+        }
+        
+        $permissions = $session->get('permissions') ?? [];
+        return in_array($slug, $permissions);
+    }
+}
+
+if (!function_exists('can_view')) {
+    /**
+     * Check if user can view a module
+     */
+    function can_view($moduleSlug)
+    {
+        return user_can($moduleSlug . '_view') || user_can($moduleSlug . '_manage');
+    }
+}
+
+if (!function_exists('can_add')) {
+    /**
+     * Check if user can add to a module
+     */
+    function can_add($moduleSlug)
+    {
+        return user_can($moduleSlug . '_add') || user_can($moduleSlug . '_manage');
+    }
+}
+
+if (!function_exists('can_edit')) {
+    /**
+     * Check if user can edit a module
+     */
+    function can_edit($moduleSlug)
+    {
+        return user_can($moduleSlug . '_edit') || user_can($moduleSlug . '_manage');
+    }
+}
+
+if (!function_exists('can_delete')) {
+    /**
+     * Check if user can delete from a module
+     */
+    function can_delete($moduleSlug)
+    {
+        return user_can($moduleSlug . '_delete') || user_can($moduleSlug . '_manage');
+    }
+}
+
+if (!function_exists('can_manage')) {
+    /**
+     * Check if user can manage a module
+     */
+    function can_manage($moduleSlug)
+    {
+        return user_can($moduleSlug . '_manage');
+    }
+}
+
 if (!function_exists('is_menu_active')) {
+    /**
+     * Check if a menu item is active based on current URI
+     */
     function is_menu_active($route, $currentUri)
     {
         if (is_array($route)) {
@@ -464,5 +307,57 @@ if (!function_exists('is_menu_active')) {
         }
         
         return strpos($currentUri, $route) !== false;
+    }
+}
+
+if (!function_exists('render_sidebar_menu')) {
+    /**
+     * Render sidebar menu HTML
+     */
+    function render_sidebar_menu()
+    {
+        $menu = get_admin_menu();
+        $currentUri = service('uri')->getPath();
+        
+        $html = '<ul class="sidebar-menu">';
+        
+        foreach ($menu as $item) {
+            if (isset($item['submenus']) && !empty($item['submenus'])) {
+                // Category with submenus
+                $html .= '<li class="sidebar-item">';
+                $html .= '<a href="#" class="sidebar-link has-dropdown">';
+                $html .= '<i class="' . $item['icon'] . '"></i>';
+                $html .= '<span>' . $item['label'] . '</span>';
+                $html .= '<i class="fa fa-chevron-down pull-right"></i>';
+                $html .= '</a>';
+                $html .= '<ul class="sidebar-dropdown">';
+                
+                foreach ($item['submenus'] as $sub) {
+                    $active = is_menu_active($sub['route'], $currentUri) ? 'active' : '';
+                    $html .= '<li>';
+                    $html .= '<a href="' . site_url($sub['route']) . '" class="' . $active . '">';
+                    $html .= '<i class="' . $sub['icon'] . '"></i>';
+                    $html .= $sub['label'];
+                    $html .= '</a>';
+                    $html .= '</li>';
+                }
+                
+                $html .= '</ul>';
+                $html .= '</li>';
+            } else {
+                // Single menu item
+                $active = is_menu_active($item['route'], $currentUri) ? 'active' : '';
+                $html .= '<li class="sidebar-item">';
+                $html .= '<a href="' . site_url($item['route']) . '" class="sidebar-link ' . $active . '">';
+                $html .= '<i class="' . $item['icon'] . '"></i>';
+                $html .= '<span>' . $item['label'] . '</span>';
+                $html .= '</a>';
+                $html .= '</li>';
+            }
+        }
+        
+        $html .= '</ul>';
+        
+        return $html;
     }
 }

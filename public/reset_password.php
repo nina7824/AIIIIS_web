@@ -44,7 +44,7 @@ try {
     }
     echo "</table>";
     
-    echo "<br><a href='/aiiiis/login'>Go to Login →</a>";
+    echo "<br><a href='/AIIIIS_web/login'>Go to Login →</a>";
     
 } catch(PDOException $e) {
     echo "Error: " . $e->getMessage();

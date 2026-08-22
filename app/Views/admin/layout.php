@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         /* ========== CSS VARIABLES ========== */
@@ -141,7 +142,7 @@
             align-items: center;
             flex-wrap: wrap;
             gap: 0.5rem;
-            padding: 0 2rem;
+            padding: 0 1.25rem;
             width: 100%;
         }
         .top-bar-left { display: flex; align-items: center; gap: 1.5rem; }
@@ -595,13 +596,14 @@
             flex-direction: column;
             overflow: hidden;
             background: var(--canvas);
+            min-width: 0;
         }
 
         /* ========== HEADER ========== */
         .content-header {
             background: var(--surface);
             border-bottom: 1px solid var(--border);
-            padding: 0.75rem 2rem;
+            padding: 0.6rem 1.25rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -727,37 +729,22 @@
         .page-content {
             flex: 1;
             overflow-y: auto;
-            padding: 1.5rem 2rem 2rem;
+            padding: 1rem 1.25rem 1.25rem;
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
         }
+
         .page-content::-webkit-scrollbar { width: 6px; }
         .page-content::-webkit-scrollbar-track { background: var(--scrollbar-track); }
         .page-content::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 10px; }
         .page-content::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-        .page-header h1 {
-            font-size: 1.3rem;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-        }
-        .page-header .breadcrumb {
-            font-size: 0.78rem;
-            color: var(--ink-muted);
-        }
-        .page-header .breadcrumb span { color: var(--ink); }
-
         /* ========== FOOTER ========== */
         .content-footer {
             background: var(--surface);
             border-top: 1px solid var(--border);
-            padding: 0.75rem 2rem;
+            padding: 0.6rem 1.25rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -815,20 +802,21 @@
             .sidebar.collapsed .submenu-wrapper { max-height: 0 !important; }
             .sidebar.collapsed .submenu-wrapper.open { max-height: 0 !important; }
             .content-header .header-toggle { display: block; }
-            .page-content { padding: 1rem; }
+            .page-content { padding: 0.75rem 1rem 1rem; }
             .content-header { padding: 0.5rem 1rem; }
             .content-footer { padding: 0.5rem 1rem; flex-direction: column; gap: 0.5rem; text-align: center; }
+            .top-bar-inner { padding: 0 1rem; }
         }
 
         @media (max-width: 768px) {
-            .content-header { flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem; }
+            .content-header { flex-wrap: wrap; gap: 0.5rem; padding: 0.4rem 0.75rem; }
             .content-header .header-search { max-width: 100%; order: 3; flex-basis: 100%; }
             .content-header .header-right { gap: 0.3rem; }
-            .page-content { padding: 0.75rem; }
+            .page-content { padding: 0.5rem 0.75rem 0.75rem; }
             .page-header { flex-direction: column; align-items: flex-start; }
             .top-bar-inner { padding: 0 0.5rem; }
             .top-bar-left span:not(:first-child) { display: none; }
-            .content-footer { padding: 0.5rem; font-size: 0.65rem; }
+            .content-footer { padding: 0.4rem 0.75rem; font-size: 0.65rem; flex-direction: column; gap: 0.5rem; text-align: center; }
         }
 
         @media (max-width: 480px) {
@@ -838,6 +826,43 @@
             .content-header .header-profile .profile-info { display: none !important; }
             .top-bar-right a:not(:first-child) { display: none; }
             .content-footer { flex-direction: column; gap: 0.5rem; }
+        }
+
+        /* ========== GRID OVERRIDE FOR ROLE STATS ========== */
+        .role-stats-wrapper {
+            display: grid !important;
+            grid-template-columns: repeat(4, 1fr) !important;
+            gap: 0.75rem !important;
+            margin-bottom: 1rem !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        @media (max-width: 992px) {
+            .role-stats-wrapper {
+                grid-template-columns: repeat(2, 1fr) !important;
+                gap: 0.75rem !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .role-stats-wrapper {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 0.5rem !important;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .role-stats-wrapper {
+                grid-template-columns: 1fr !important;
+                gap: 0.5rem !important;
+            }
+        }
+
+        /* Ensure content within page-content doesn't overflow */
+        .page-content > * {
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         <?= $this->renderSection('styles') ?>
@@ -874,16 +899,18 @@
             <!-- ========== SIDEBAR NAVIGATION ========== -->
             <nav class="sidebar-nav" id="sidebarNav">
                 <?php 
-                $menus = $menus ?? $userMenus ?? [];
-                $currentUri = current_url();
-                
-                if (empty($menus)) {
-                    $role = $user['role'] ?? $currentUser['role'] ?? session()->get('role') ?? 'enterprise';
-                    if (!function_exists('get_admin_menu')) {
-                        helper('admin_menu');
-                    }
-                    $menus = get_admin_menu($role);
+                // Load the helper if not already loaded
+                if (!function_exists('get_admin_menu')) {
+                    helper('admin_menu');
                 }
+                
+                // Get menu items from session or generate them
+                $menus = $menus ?? [];
+                if (empty($menus)) {
+                    $menus = get_admin_menu();
+                }
+                
+                $currentUri = current_url();
                 
                 foreach ($menus as $menu): 
                     $hasSubmenus = isset($menu['submenus']) && !empty($menu['submenus']);
@@ -1014,18 +1041,6 @@
 
             <!-- ========== PAGE CONTENT ========== -->
             <main class="page-content">
-                <div class="page-header">
-                    <div>
-                        <h1><?= $page_title ?? 'Dashboard' ?></h1>
-                        <div class="breadcrumb">
-                            <?= $page_title ?? 'Dashboard' ?>
-                            <?php if (isset($breadcrumb)): ?>
-                                <span> / <?= $breadcrumb ?></span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-
                 <?= $this->renderSection('content') ?>
             </main>
 
